@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'Fathom' in project 'Fathom'
+➜ Explicit dependency on target 'FathomWidgetsExtension' in project 'Fathom'
+Target 'FathomWidgetsExtension' in project 'Fathom' (no dependencies)

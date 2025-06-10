@@ -1,0 +1,1015 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 90;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DAA6B2042DF8171C00A67351 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA6B2032DF8171C00A67351 /* WidgetKit.framework */; };
+		DAA6B2062DF8171C00A67351 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA6B2052DF8171C00A67351 /* SwiftUI.framework */; };
+		DAA6B2172DF8171E00A67351 /* FathomWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DAB9DADD2DFA8DB50052C33A /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DADC2DFA8DB50052C33A /* FirebaseAI */; };
+		DAB9DADF2DFA8DB50052C33A /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DADE2DFA8DB50052C33A /* FirebaseAnalytics */; };
+		DAB9DAE12DFA8DB50052C33A /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAE02DFA8DB50052C33A /* FirebaseAnalyticsCore */; };
+		DAB9DAE32DFA8DB50052C33A /* FirebaseAnalyticsIdentitySupport in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAE22DFA8DB50052C33A /* FirebaseAnalyticsIdentitySupport */; };
+		DAB9DAE52DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAE42DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion */; };
+		DAB9DAE72DFA8DB50052C33A /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAE62DFA8DB50052C33A /* FirebaseAnalyticsWithoutAdIdSupport */; };
+		DAB9DAE92DFA8DB50052C33A /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAE82DFA8DB50052C33A /* FirebaseAppCheck */; };
+		DAB9DAEB2DFA8DB50052C33A /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAEA2DFA8DB50052C33A /* FirebaseAppDistribution-Beta */; };
+		DAB9DAED2DFA8DB50052C33A /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAEC2DFA8DB50052C33A /* FirebaseAuth */; };
+		DAB9DAEF2DFA8DB50052C33A /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAEE2DFA8DB50052C33A /* FirebaseAuthCombine-Community */; };
+		DAB9DAF12DFA8DB50052C33A /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF02DFA8DB50052C33A /* FirebaseCore */; };
+		DAB9DAF32DFA8DB50052C33A /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF22DFA8DB50052C33A /* FirebaseCrashlytics */; };
+		DAB9DAF52DFA8DB50052C33A /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF42DFA8DB50052C33A /* FirebaseDatabase */; };
+		DAB9DAF72DFA8DB50052C33A /* FirebaseDynamicLinks in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF62DFA8DB50052C33A /* FirebaseDynamicLinks */; };
+		DAB9DAF92DFA8DB50052C33A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */; };
+		DAB9DAFB2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */; };
+		DAB9DAFD2DFA8DB50052C33A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */; };
+		DAB9DAFF2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFE2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community */; };
+		DAB9DB012DFA8DB50052C33A /* FirebaseInAppMessaging-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB002DFA8DB50052C33A /* FirebaseInAppMessaging-Beta */; };
+		DAB9DB032DFA8DB50052C33A /* FirebaseInstallations in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB022DFA8DB50052C33A /* FirebaseInstallations */; };
+		DAB9DB052DFA8DB50052C33A /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB042DFA8DB50052C33A /* FirebaseMLModelDownloader */; };
+		DAB9DB072DFA8DB50052C33A /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB062DFA8DB50052C33A /* FirebaseMessaging */; };
+		DAB9DB092DFA8DB50052C33A /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB082DFA8DB50052C33A /* FirebasePerformance */; };
+		DAB9DB0B2DFA8DB50052C33A /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB0A2DFA8DB50052C33A /* FirebaseRemoteConfig */; };
+		DAB9DB0D2DFA8DB50052C33A /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB0C2DFA8DB50052C33A /* FirebaseStorage */; };
+		DAB9DB0F2DFA8DB50052C33A /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB0E2DFA8DB50052C33A /* FirebaseStorageCombine-Community */; };
+		DAB9DB112DFA8DB50052C33A /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB102DFA8DB50052C33A /* FirebaseVertexAI */; };
+		DAB9DB142DFA8E130052C33A /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB132DFA8E130052C33A /* Algorithms */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DAA6B1C42DF813E800A67351 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DAA6B1A72DF813E500A67351 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DAA6B1AE2DF813E500A67351;
+			remoteInfo = Fathom;
+		};
+		DAA6B1CE2DF813E800A67351 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DAA6B1A72DF813E500A67351 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DAA6B1AE2DF813E500A67351;
+			remoteInfo = Fathom;
+		};
+		DAA6B2152DF8171E00A67351 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DAA6B1A72DF813E500A67351 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DAA6B2002DF8171C00A67351;
+			remoteInfo = FathomWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DAA6B21C2DF8171E00A67351 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				DAA6B2172DF8171E00A67351 /* FathomWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		DAA6B1AF2DF813E500A67351 /* Fathom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fathom.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAA6B1C32DF813E800A67351 /* FathomTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FathomTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAA6B1CD2DF813E800A67351 /* FathomUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FathomUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FathomWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAA6B2032DF8171C00A67351 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DAA6B2052DF8171C00A67351 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DAA6B1D52DF813E800A67351 /* Exceptions for "Fathom" folder in "Fathom" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DAA6B1AE2DF813E500A67351 /* Fathom */;
+		};
+		DAA6B21B2DF8171E00A67351 /* Exceptions for "FathomWidgets" folder in "FathomWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */;
+		};
+		DAA6B22E2DF8242E00A67351 /* Exceptions for "Fathom" folder in "FathomWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AppIntents.swift,
+			);
+			target = DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */;
+		};
+		DAA6B2302DF8268000A67351 /* Exceptions for "FathomWidgets" folder in "Fathom" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FathomWidgets.swift,
+			);
+			target = DAA6B1AE2DF813E500A67351 /* Fathom */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DAA6B1B12DF813E500A67351 /* Fathom */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DAA6B1D52DF813E800A67351 /* Exceptions for "Fathom" folder in "Fathom" target */,
+				DAA6B22E2DF8242E00A67351 /* Exceptions for "Fathom" folder in "FathomWidgetsExtension" target */,
+			);
+			path = Fathom;
+			sourceTree = "<group>";
+		};
+		DAA6B1C62DF813E800A67351 /* FathomTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FathomTests;
+			sourceTree = "<group>";
+		};
+		DAA6B1D02DF813E800A67351 /* FathomUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FathomUITests;
+			sourceTree = "<group>";
+		};
+		DAA6B2072DF8171C00A67351 /* FathomWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DAA6B2302DF8268000A67351 /* Exceptions for "FathomWidgets" folder in "Fathom" target */,
+				DAA6B21B2DF8171E00A67351 /* Exceptions for "FathomWidgets" folder in "FathomWidgetsExtension" target */,
+			);
+			path = FathomWidgets;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DAA6B1AC2DF813E500A67351 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				DAB9DAFD2DFA8DB50052C33A /* FirebaseFunctions in Frameworks */,
+				DAB9DAF52DFA8DB50052C33A /* FirebaseDatabase in Frameworks */,
+				DAB9DAE32DFA8DB50052C33A /* FirebaseAnalyticsIdentitySupport in Frameworks */,
+				DAB9DB0D2DFA8DB50052C33A /* FirebaseStorage in Frameworks */,
+				DAB9DAE72DFA8DB50052C33A /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
+				DAB9DAF12DFA8DB50052C33A /* FirebaseCore in Frameworks */,
+				DAB9DADF2DFA8DB50052C33A /* FirebaseAnalytics in Frameworks */,
+				DAB9DB052DFA8DB50052C33A /* FirebaseMLModelDownloader in Frameworks */,
+				DAB9DB142DFA8E130052C33A /* Algorithms in Frameworks */,
+				DAB9DAF72DFA8DB50052C33A /* FirebaseDynamicLinks in Frameworks */,
+				DAB9DAE52DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
+				DAB9DAED2DFA8DB50052C33A /* FirebaseAuth in Frameworks */,
+				DAB9DAF92DFA8DB50052C33A /* FirebaseFirestore in Frameworks */,
+				DAB9DAFB2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community in Frameworks */,
+				DAB9DB112DFA8DB50052C33A /* FirebaseVertexAI in Frameworks */,
+				DAB9DB012DFA8DB50052C33A /* FirebaseInAppMessaging-Beta in Frameworks */,
+				DAB9DAFF2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community in Frameworks */,
+				DAB9DAE92DFA8DB50052C33A /* FirebaseAppCheck in Frameworks */,
+				DAB9DB0F2DFA8DB50052C33A /* FirebaseStorageCombine-Community in Frameworks */,
+				DAB9DB0B2DFA8DB50052C33A /* FirebaseRemoteConfig in Frameworks */,
+				DAB9DAE12DFA8DB50052C33A /* FirebaseAnalyticsCore in Frameworks */,
+				DAB9DADD2DFA8DB50052C33A /* FirebaseAI in Frameworks */,
+				DAB9DB092DFA8DB50052C33A /* FirebasePerformance in Frameworks */,
+				DAB9DAF32DFA8DB50052C33A /* FirebaseCrashlytics in Frameworks */,
+				DAB9DAEB2DFA8DB50052C33A /* FirebaseAppDistribution-Beta in Frameworks */,
+				DAB9DAEF2DFA8DB50052C33A /* FirebaseAuthCombine-Community in Frameworks */,
+				DAB9DB072DFA8DB50052C33A /* FirebaseMessaging in Frameworks */,
+				DAB9DB032DFA8DB50052C33A /* FirebaseInstallations in Frameworks */,
+			);
+		};
+		DAA6B1C02DF813E800A67351 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1CA2DF813E800A67351 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1FE2DF8171C00A67351 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				DAA6B2062DF8171C00A67351 /* SwiftUI.framework in Frameworks */,
+				DAA6B2042DF8171C00A67351 /* WidgetKit.framework in Frameworks */,
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DAA6B1A62DF813E500A67351 = {
+			isa = PBXGroup;
+			children = (
+				DAA6B1B12DF813E500A67351 /* Fathom */,
+				DAA6B1C62DF813E800A67351 /* FathomTests */,
+				DAA6B1D02DF813E800A67351 /* FathomUITests */,
+				DAA6B2072DF8171C00A67351 /* FathomWidgets */,
+				DAA6B2022DF8171C00A67351 /* Frameworks */,
+				DAA6B1B02DF813E500A67351 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DAA6B1B02DF813E500A67351 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DAA6B1AF2DF813E500A67351 /* Fathom.app */,
+				DAA6B1C32DF813E800A67351 /* FathomTests.xctest */,
+				DAA6B1CD2DF813E800A67351 /* FathomUITests.xctest */,
+				DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DAA6B2022DF8171C00A67351 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DAA6B2032DF8171C00A67351 /* WidgetKit.framework */,
+				DAA6B2052DF8171C00A67351 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DAA6B1AE2DF813E500A67351 /* Fathom */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAA6B1D62DF813E800A67351 /* Build configuration list for PBXNativeTarget "Fathom" */;
+			buildPhases = (
+				DAA6B1AB2DF813E500A67351 /* Sources */,
+				DAA6B1AC2DF813E500A67351 /* Frameworks */,
+				DAA6B1AD2DF813E500A67351 /* Resources */,
+				DAA6B21C2DF8171E00A67351 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DAA6B2162DF8171E00A67351 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DAA6B1B12DF813E500A67351 /* Fathom */,
+			);
+			name = Fathom;
+			packageProductDependencies = (
+				DAB9DADC2DFA8DB50052C33A /* FirebaseAI */,
+				DAB9DADE2DFA8DB50052C33A /* FirebaseAnalytics */,
+				DAB9DAE02DFA8DB50052C33A /* FirebaseAnalyticsCore */,
+				DAB9DAE22DFA8DB50052C33A /* FirebaseAnalyticsIdentitySupport */,
+				DAB9DAE42DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion */,
+				DAB9DAE62DFA8DB50052C33A /* FirebaseAnalyticsWithoutAdIdSupport */,
+				DAB9DAE82DFA8DB50052C33A /* FirebaseAppCheck */,
+				DAB9DAEA2DFA8DB50052C33A /* FirebaseAppDistribution-Beta */,
+				DAB9DAEC2DFA8DB50052C33A /* FirebaseAuth */,
+				DAB9DAEE2DFA8DB50052C33A /* FirebaseAuthCombine-Community */,
+				DAB9DAF02DFA8DB50052C33A /* FirebaseCore */,
+				DAB9DAF22DFA8DB50052C33A /* FirebaseCrashlytics */,
+				DAB9DAF42DFA8DB50052C33A /* FirebaseDatabase */,
+				DAB9DAF62DFA8DB50052C33A /* FirebaseDynamicLinks */,
+				DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */,
+				DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */,
+				DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */,
+				DAB9DAFE2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community */,
+				DAB9DB002DFA8DB50052C33A /* FirebaseInAppMessaging-Beta */,
+				DAB9DB022DFA8DB50052C33A /* FirebaseInstallations */,
+				DAB9DB042DFA8DB50052C33A /* FirebaseMLModelDownloader */,
+				DAB9DB062DFA8DB50052C33A /* FirebaseMessaging */,
+				DAB9DB082DFA8DB50052C33A /* FirebasePerformance */,
+				DAB9DB0A2DFA8DB50052C33A /* FirebaseRemoteConfig */,
+				DAB9DB0C2DFA8DB50052C33A /* FirebaseStorage */,
+				DAB9DB0E2DFA8DB50052C33A /* FirebaseStorageCombine-Community */,
+				DAB9DB102DFA8DB50052C33A /* FirebaseVertexAI */,
+				DAB9DB132DFA8E130052C33A /* Algorithms */,
+			);
+			productName = Fathom;
+			productReference = DAA6B1AF2DF813E500A67351 /* Fathom.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DAA6B1C22DF813E800A67351 /* FathomTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAA6B1DB2DF813E800A67351 /* Build configuration list for PBXNativeTarget "FathomTests" */;
+			buildPhases = (
+				DAA6B1BF2DF813E800A67351 /* Sources */,
+				DAA6B1C02DF813E800A67351 /* Frameworks */,
+				DAA6B1C12DF813E800A67351 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DAA6B1C52DF813E800A67351 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DAA6B1C62DF813E800A67351 /* FathomTests */,
+			);
+			name = FathomTests;
+			productName = FathomTests;
+			productReference = DAA6B1C32DF813E800A67351 /* FathomTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DAA6B1CC2DF813E800A67351 /* FathomUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAA6B1DE2DF813E800A67351 /* Build configuration list for PBXNativeTarget "FathomUITests" */;
+			buildPhases = (
+				DAA6B1C92DF813E800A67351 /* Sources */,
+				DAA6B1CA2DF813E800A67351 /* Frameworks */,
+				DAA6B1CB2DF813E800A67351 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DAA6B1CF2DF813E800A67351 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DAA6B1D02DF813E800A67351 /* FathomUITests */,
+			);
+			name = FathomUITests;
+			productName = FathomUITests;
+			productReference = DAA6B1CD2DF813E800A67351 /* FathomUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAA6B2182DF8171E00A67351 /* Build configuration list for PBXNativeTarget "FathomWidgetsExtension" */;
+			buildPhases = (
+				DAA6B1FD2DF8171C00A67351 /* Sources */,
+				DAA6B1FE2DF8171C00A67351 /* Frameworks */,
+				DAA6B1FF2DF8171C00A67351 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				DAA6B2072DF8171C00A67351 /* FathomWidgets */,
+			);
+			name = FathomWidgetsExtension;
+			productName = FathomWidgetsExtension;
+			productReference = DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DAA6B1A72DF813E500A67351 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					DAA6B1AE2DF813E500A67351 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					DAA6B1C22DF813E800A67351 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = DAA6B1AE2DF813E500A67351;
+					};
+					DAA6B1CC2DF813E800A67351 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = DAA6B1AE2DF813E500A67351;
+					};
+					DAA6B2002DF8171C00A67351 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = DAA6B1AA2DF813E500A67351 /* Build configuration list for PBXProject "Fathom" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DAA6B1A62DF813E500A67351;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				DAB9DB122DFA8E130052C33A /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+			);
+			preferredProjectObjectVersion = 90;
+			productRefGroup = DAA6B1B02DF813E500A67351 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DAA6B1AE2DF813E500A67351 /* Fathom */,
+				DAA6B1C22DF813E800A67351 /* FathomTests */,
+				DAA6B1CC2DF813E800A67351 /* FathomUITests */,
+				DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DAA6B1AD2DF813E500A67351 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1C12DF813E800A67351 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1CB2DF813E800A67351 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1FF2DF8171C00A67351 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DAA6B1AB2DF813E500A67351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1BF2DF813E800A67351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1C92DF813E800A67351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		DAA6B1FD2DF8171C00A67351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DAA6B1C52DF813E800A67351 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DAA6B1AE2DF813E500A67351 /* Fathom */;
+			targetProxy = DAA6B1C42DF813E800A67351 /* PBXContainerItemProxy */;
+		};
+		DAA6B1CF2DF813E800A67351 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DAA6B1AE2DF813E500A67351 /* Fathom */;
+			targetProxy = DAA6B1CE2DF813E800A67351 /* PBXContainerItemProxy */;
+		};
+		DAA6B2162DF8171E00A67351 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */;
+			targetProxy = DAA6B2152DF8171E00A67351 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		DAA6B1D72DF813E800A67351 /* Debug configuration for PBXNativeTarget "Fathom" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Fathom/Fathom.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Fathom/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				"SWIFT_VERSION[arch=*]" = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		DAA6B1D82DF813E800A67351 /* Release configuration for PBXNativeTarget "Fathom" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Fathom/Fathom.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Fathom/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				"SWIFT_VERSION[arch=*]" = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		DAA6B1D92DF813E800A67351 /* Debug configuration for PBXProject "Fathom" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DAA6B1DA2DF813E800A67351 /* Release configuration for PBXProject "Fathom" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DAA6B1DC2DF813E800A67351 /* Debug configuration for PBXNativeTarget "FathomTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.FathomTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fathom.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fathom";
+			};
+			name = Debug;
+		};
+		DAA6B1DD2DF813E800A67351 /* Release configuration for PBXNativeTarget "FathomTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.FathomTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fathom.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fathom";
+			};
+			name = Release;
+		};
+		DAA6B1DF2DF813E800A67351 /* Debug configuration for PBXNativeTarget "FathomUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.FathomUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Fathom;
+			};
+			name = Debug;
+		};
+		DAA6B1E02DF813E800A67351 /* Release configuration for PBXNativeTarget "FathomUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.FathomUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Fathom;
+			};
+			name = Release;
+		};
+		DAA6B2192DF8171E00A67351 /* Debug configuration for PBXNativeTarget "FathomWidgetsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FathomWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FathomWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom.FathomWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DAA6B21A2DF8171E00A67351 /* Release configuration for PBXNativeTarget "FathomWidgetsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7R37PFMCEQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FathomWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FathomWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom.FathomWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DAA6B1AA2DF813E500A67351 /* Build configuration list for PBXProject "Fathom" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAA6B1D92DF813E800A67351 /* Debug configuration for PBXProject "Fathom" */,
+				DAA6B1DA2DF813E800A67351 /* Release configuration for PBXProject "Fathom" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		DAA6B1D62DF813E800A67351 /* Build configuration list for PBXNativeTarget "Fathom" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAA6B1D72DF813E800A67351 /* Debug configuration for PBXNativeTarget "Fathom" */,
+				DAA6B1D82DF813E800A67351 /* Release configuration for PBXNativeTarget "Fathom" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		DAA6B1DB2DF813E800A67351 /* Build configuration list for PBXNativeTarget "FathomTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAA6B1DC2DF813E800A67351 /* Debug configuration for PBXNativeTarget "FathomTests" */,
+				DAA6B1DD2DF813E800A67351 /* Release configuration for PBXNativeTarget "FathomTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		DAA6B1DE2DF813E800A67351 /* Build configuration list for PBXNativeTarget "FathomUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAA6B1DF2DF813E800A67351 /* Debug configuration for PBXNativeTarget "FathomUITests" */,
+				DAA6B1E02DF813E800A67351 /* Release configuration for PBXNativeTarget "FathomUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		DAA6B2182DF8171E00A67351 /* Build configuration list for PBXNativeTarget "FathomWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAA6B2192DF8171E00A67351 /* Debug configuration for PBXNativeTarget "FathomWidgetsExtension" */,
+				DAA6B21A2DF8171E00A67351 /* Release configuration for PBXNativeTarget "FathomWidgetsExtension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.14.0;
+			};
+		};
+		DAB9DB122DFA8E130052C33A /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DAB9DADC2DFA8DB50052C33A /* FirebaseAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAI;
+		};
+		DAB9DADE2DFA8DB50052C33A /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		DAB9DAE02DFA8DB50052C33A /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
+		};
+		DAB9DAE22DFA8DB50052C33A /* FirebaseAnalyticsIdentitySupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsIdentitySupport;
+		};
+		DAB9DAE42DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsOnDeviceConversion;
+		};
+		DAB9DAE62DFA8DB50052C33A /* FirebaseAnalyticsWithoutAdIdSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsWithoutAdIdSupport;
+		};
+		DAB9DAE82DFA8DB50052C33A /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		DAB9DAEA2DFA8DB50052C33A /* FirebaseAppDistribution-Beta */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseAppDistribution-Beta";
+		};
+		DAB9DAEC2DFA8DB50052C33A /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		DAB9DAEE2DFA8DB50052C33A /* FirebaseAuthCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseAuthCombine-Community";
+		};
+		DAB9DAF02DFA8DB50052C33A /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		DAB9DAF22DFA8DB50052C33A /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		DAB9DAF42DFA8DB50052C33A /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		DAB9DAF62DFA8DB50052C33A /* FirebaseDynamicLinks */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDynamicLinks;
+		};
+		DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseFirestoreCombine-Community";
+		};
+		DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		DAB9DAFE2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseFunctionsCombine-Community";
+		};
+		DAB9DB002DFA8DB50052C33A /* FirebaseInAppMessaging-Beta */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseInAppMessaging-Beta";
+		};
+		DAB9DB022DFA8DB50052C33A /* FirebaseInstallations */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseInstallations;
+		};
+		DAB9DB042DFA8DB50052C33A /* FirebaseMLModelDownloader */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMLModelDownloader;
+		};
+		DAB9DB062DFA8DB50052C33A /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		DAB9DB082DFA8DB50052C33A /* FirebasePerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebasePerformance;
+		};
+		DAB9DB0A2DFA8DB50052C33A /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+		DAB9DB0C2DFA8DB50052C33A /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		DAB9DB0E2DFA8DB50052C33A /* FirebaseStorageCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseStorageCombine-Community";
+		};
+		DAB9DB102DFA8DB50052C33A /* FirebaseVertexAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseVertexAI;
+		};
+		DAB9DB132DFA8E130052C33A /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAB9DB122DFA8E130052C33A /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = DAA6B1A72DF813E500A67351 /* Project object */;
+}

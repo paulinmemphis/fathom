@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24233.11" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="Item" representedClassName="Item" syncable="YES">
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="Workplace" representedClassName="Workplace" syncable="YES">
+        <attribute name="address" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lattitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="notificationsEnabled" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="workingDays" optional="YES" attributeType="Binary"/>
+        <attribute name="workingHoursPerDay" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="checkins" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="WorkplaceCheckIn" inverseName="workplace" inverseEntity="WorkplaceCheckIn"/>
+    </entity>
+    <entity name="WorkplaceCheckIn" representedClassName="WorkplaceCheckIn" syncable="YES">
+        <attribute name="checkInTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="checkOutTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="focusRating" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isAutoCheckIn" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isAutoCheckOut" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="sessionNote" optional="YES" attributeType="String"/>
+        <attribute name="stressRating" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="workplace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Workplace" inverseName="checkins" inverseEntity="Workplace"/>
+    </entity>
+</model>

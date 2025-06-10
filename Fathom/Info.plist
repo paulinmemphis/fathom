@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Fathom needs your location to help you find nearby workplaces and track your check-ins.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Fathom uses your location to automatically check you in and out of workplaces, even when the app is in the background. This helps maintain accurate work logs without manual effort.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Fathom requires access to your location at all times to automatically manage your workplace check-ins and check-outs via geofencing.</string>
+</dict>
+</plist>

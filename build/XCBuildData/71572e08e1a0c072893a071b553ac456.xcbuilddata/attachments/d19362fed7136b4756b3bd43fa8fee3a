@@ -1,0 +1,150 @@
+{
+  "" : {
+    "const-values" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master.swiftconstvalues",
+    "dependencies" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master.d",
+    "diagnostics" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master.dia",
+    "emit-module-dependencies" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master-emit-module.dia",
+    "swift-dependencies" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom-master.swiftdeps"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/AppIntents.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/AppIntents.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/AppIntents.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/AppIntents.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/ApplockManager.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ApplockManager.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ApplockManager.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ApplockManager.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/CalendarManager.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CalendarManager.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CalendarManager.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CalendarManager.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/CognitiveReframingView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CognitiveReframingView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CognitiveReframingView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CognitiveReframingView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/ContentView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/CorporateDashboardView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CorporateDashboardView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CorporateDashboardView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/CorporateDashboardView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/FathomActivityAttributes.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomActivityAttributes.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomActivityAttributes.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomActivityAttributes.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/FathomApp.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomApp.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomApp.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomApp.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/FocusTimerView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FocusTimerView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FocusTimerView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FocusTimerView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/InsightsDashboard.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/InsightsDashboard.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/InsightsDashboard.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/InsightsDashboard.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/JournalEntriesView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/JournalEntriesView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/JournalEntriesView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/JournalEntriesView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/MainTabView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/MainTabView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/MainTabView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/MainTabView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/NotificationManager.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/NotificationManager.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/NotificationManager.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/NotificationManager.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/OnDeviceInsightGenerator.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/OnDeviceInsightGenerator.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/OnDeviceInsightGenerator.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/OnDeviceInsightGenerator.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/Persistence.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Persistence.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Persistence.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Persistence.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/ProfessionaThemeManager.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ProfessionaThemeManager.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ProfessionaThemeManager.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ProfessionaThemeManager.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/SettingsView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/SubscriptionManager.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SubscriptionManager.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SubscriptionManager.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/SubscriptionManager.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/TaskBreakerView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/TaskBreakerView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/TaskBreakerView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/TaskBreakerView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/ToolsView.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ToolsView.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ToolsView.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/ToolsView.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/WorkplaceJournalEntry.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalEntry.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalEntry.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalEntry.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/Fathom/WorkplaceJournalStore.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalStore.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalStore.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/WorkplaceJournalStore.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/FathomWidgets/FathomWidgets.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgets.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgets.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgets.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/FathomWidgets/FathomWidgetsBundle.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgetsBundle.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgetsBundle.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/FathomWidgetsBundle.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/DerivedSources/CoreDataGenerated/Fathom/Fathom+CoreDataModel.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom+CoreDataModel.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom+CoreDataModel.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Fathom+CoreDataModel.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/DerivedSources/CoreDataGenerated/Fathom/Item+CoreDataClass.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataClass.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataClass.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataClass.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/DerivedSources/CoreDataGenerated/Fathom/Item+CoreDataProperties.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataProperties.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataProperties.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/Item+CoreDataProperties.o"
+  },
+  "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/paul/Documents/Fathom App/Fathom/build/Fathom.build/Release-iphoneos/Fathom.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

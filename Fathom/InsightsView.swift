@@ -5,13 +5,14 @@ struct InsightsView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingPaywall = false
-
+    @StateObject private var personalizationEngine = PersonalizationEngine.shared
+    
     // FetchRequest for CheckIn entities
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \WorkplaceCheckIn.checkInTime, ascending: false)],
         animation: .default)
     private var checkInLogs: FetchedResults<WorkplaceCheckIn>
-
+    
     // FetchRequest for BreathingExercise entities
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \BreathingExercise.completedAt, ascending: false)],
@@ -46,283 +47,156 @@ struct InsightsView: View {
         }
     }
 
+    @State private var insights: [Insight] = []
+    @State private var showingPersonalizationSettings = false
+    @State private var interactionHistory: [UUID: (dismissed: Bool, actionTaken: Bool)] = [:]
+
+    private let analytics = AnalyticsService.shared
+
     var body: some View {
         NavigationView {
             Group {
-                if subscriptionManager.isProUser {
-                    // Placeholder for actual insights content
+                if subscriptionManager.isPro {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            // Header with period info
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Your Insights")
-                                    .font(.largeTitle)
-                                    .fontWeight(.bold)
-                                Text("Based on your activity from the last 7 days")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                            // Header with personalization button
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text("Your Insights")
+                                        .font(.largeTitle)
+                                        .fontWeight(.bold)
+                                    
+                                    Text("Personalized for \(personalizationEngine.userRole.rawValue) in \(personalizationEngine.userIndustry.rawValue)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Button {
+                                    showingPersonalizationSettings = true
+                                } label: {
+                                    Image(systemName: "brain.head.profile")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+                                }
                             }
                             .padding(.horizontal)
                             
-                            // Generate insights using the engine
-                            let insights = insightEngine.generateInsights(
-                                checkIns: Array(recentCheckInLogs),
-                                breathingLogs: Array(breathingLogs),
-                                journalEntries: journalStore.entries,
-                                goals: goalsManager.goals,
-                                forLastDays: 7
-                            )
-                            
-                            // Group insights by priority and type
-                            let priorityInsights = insights.filter { $0.priority >= 5 }.sorted { $0.priority > $1.priority }
-                            let generalInsights = insights.filter { $0.priority < 5 }.sorted { $0.priority > $1.priority }
-                            let goalInsights = insights.filter { $0.message.contains("🎯") }
-                            let otherInsights = insights.filter { !$0.message.contains("🎯") && $0.priority < 5 }
-                            
-                            // High Priority Insights Section
-                            if !priorityInsights.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.orange)
-                                        Text("Key Insights")
-                                            .font(.title2)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .padding(.horizontal)
-                                    
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(priorityInsights) { insight in
-                                            InsightCardView(insight: insight)
-                                                .padding(.horizontal)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Goals Progress Section
-                            if !goalInsights.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Image(systemName: "target")
-                                            .foregroundColor(.blue)
-                                        Text("Goal Progress")
-                                            .font(.title2)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .padding(.horizontal)
-                                    
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(goalInsights) { insight in
-                                            InsightCardView(insight: insight)
-                                                .padding(.horizontal)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Enhanced Weekly Progress Section
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack {
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .foregroundColor(.green)
-                                    Text("Your Week at a Glance")
-                                        .font(.title2)
-                                        .fontWeight(.semibold)
-                                }
+                            // Insights complexity indicator
+                            PersonalizationStatusView(complexity: personalizationEngine.insightComplexity)
                                 .padding(.horizontal)
-                                
-                                VStack(spacing: 16) {
-                                    // Work hours with progress bar
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Image(systemName: "clock.fill")
-                                                .foregroundColor(.blue)
-                                                .frame(width: 20)
-                                            Text("Total Work Time")
-                                            Spacer()
-                                            Text("\(totalWorkHoursLast7Days, specifier: "%.1f") hours")
-                                                .fontWeight(.semibold)
-                                        }
-                                        
-                                        ProgressView(value: min(totalWorkHoursLast7Days / 40.0, 1.0))
-                                            .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                                        
-                                        HStack {
-                                            Text("Target: 40 hours")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                            Spacer()
-                                            Text("\(Int((totalWorkHoursLast7Days / 40.0) * 100))%")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Breathing sessions with visual indicator
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Image(systemName: "lungs.fill")
-                                                .foregroundColor(.green)
-                                                .frame(width: 20)
-                                            Text("Breathing Sessions")
-                                            Spacer()
-                                            Text("\(breathingLogs.count)")
-                                                .fontWeight(.semibold)
-                                        }
-                                        
-                                        let breathingTarget = 5.0
-                                        ProgressView(value: min(Double(breathingLogs.count) / breathingTarget, 1.0))
-                                            .progressViewStyle(LinearProgressViewStyle(tint: .green))
-                                        
-                                        HStack {
-                                            Text("Weekly goal: \(Int(breathingTarget)) sessions")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                            Spacer()
-                                            Text("\(Int((Double(breathingLogs.count) / breathingTarget) * 100))%")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Reflections tracking
-                                    let reflectionCount = checkInLogs.filter { $0.sessionNote != nil && !$0.sessionNote!.isEmpty }.count
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Image(systemName: "doc.text.fill")
-                                                .foregroundColor(.purple)
-                                                .frame(width: 20)
-                                            Text("Session Reflections")
-                                            Spacer()
-                                            Text("\(reflectionCount)")
-                                                .fontWeight(.semibold)
-                                        }
-                                        
-                                        let reflectionTarget = Double(recentCheckInLogs.count)
-                                        if reflectionTarget > 0 {
-                                            ProgressView(value: Double(reflectionCount) / reflectionTarget)
-                                                .progressViewStyle(LinearProgressViewStyle(tint: .purple))
-                                            
-                                            HStack {
-                                                Text("Reflection rate")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                                Spacer()
-                                                Text("\(Int((Double(reflectionCount) / reflectionTarget) * 100))%")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Journal entries
-                                    HStack {
-                                        Image(systemName: "book.fill")
-                                            .foregroundColor(.orange)
-                                            .frame(width: 20)
-                                        Text("Journal Entries")
-                                        Spacer()
-                                        VStack(alignment: .trailing) {
-                                            Text("\(journalStore.entries.count)")
-                                                .fontWeight(.semibold)
-                                            Text("this week")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                }
-                                .padding()
-                                .background(Color(UIColor.secondarySystemGroupedBackground))
-                                .cornerRadius(12)
-                                .padding(.horizontal)
-                            }
                             
-                            // Other Insights Section
-                            if !otherInsights.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Image(systemName: "lightbulb.fill")
-                                            .foregroundColor(.yellow)
-                                        Text("Additional Insights")
-                                            .font(.title2)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .padding(.horizontal)
-                                    
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(otherInsights) { insight in
-                                            InsightCardView(insight: insight)
-                                                .padding(.horizontal)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Fallback message if no insights
                             if insights.isEmpty {
+                                // Loading or empty state
                                 VStack(spacing: 16) {
-                                    Image(systemName: "chart.bar.doc.horizontal")
-                                        .font(.system(size: 50))
+                                    ProgressView()
+                                    Text("Generating personalized insights...")
                                         .foregroundColor(.secondary)
-                                    
-                                    Text("Building Your Insights")
-                                        .font(.title3)
-                                        .fontWeight(.medium)
-                                    
-                                    Text("Keep tracking your work sessions, reflections, and breathing exercises to unlock personalized insights about your productivity patterns.")
-                                        .multilineTextAlignment(.center)
-                                        .foregroundColor(.secondary)
-                                        .padding(.horizontal)
                                 }
-                                .padding(.vertical, 40)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            } else {
+                                // Personalized insights display
+                                LazyVStack(spacing: 16) {
+                                    ForEach(insights) { insight in
+                                        PersonalizedInsightCard(
+                                            insight: insight,
+                                            onDismiss: {
+                                                handleInsightInteraction(insight, dismissed: true, actionTaken: false)
+                                            },
+                                            onAction: {
+                                                handleInsightInteraction(insight, dismissed: false, actionTaken: true)
+                                            }
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
                         }
-                        .padding(.vertical)
                     }
                 } else {
-                    // Upsell for non-Pro users
+                    // Paywall for non-Pro users
                     VStack(spacing: 20) {
-                        Image(systemName: "chart.bar.xaxis.ascending") // Or a more relevant icon
-                            .font(.system(size: 60))
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 64))
                             .foregroundColor(.blue)
-                        Text("Unlock Your Personalized Insights")
-                            .font(.title2)
+                        
+                        Text("Personalized Insights")
+                            .font(.title)
                             .fontWeight(.bold)
-                        Text("Understand your work patterns, manage stress, and boost your productivity with Fathom Pro.")
-                            .font(.body)
+                        
+                        Text("Unlock AI-powered, personalized insights that adapt to your unique work patterns and preferences.")
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        Button {
-                            showingPaywall.toggle()
-                        } label: {
-                            Text("Upgrade to Fathom Pro")
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
+                            .foregroundColor(.secondary)
+                        
+                        Button("Upgrade to Pro") {
+                            showingPaywall = true
                         }
-                        .padding(.horizontal, 40)
-                        Spacer()
+                        .buttonStyle(.borderedProminent)
                     }
                     .padding()
                 }
             }
-            .navigationTitle("Your Fathom Insights")
-            .sheet(isPresented: $showingPaywall) {
-                PaywallView_Workplace()
-                    .environmentObject(subscriptionManager)
+            .navigationTitle("Insights")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                loadPersonalizedInsights()
+            }
+            .refreshable {
+                loadPersonalizedInsights()
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle()) // Use StackNavigationViewStyle for a standard full-screen view
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView_Workplace()
+        }
+        .sheet(isPresented: $showingPersonalizationSettings) {
+            PersonalizationSettingsView()
+        }
+    }
+    
+    private func loadPersonalizedInsights() {
+        Task {
+            let checkInsArray = Array(checkInLogs)
+            let breathingArray = Array(breathingLogs)
+            let journalEntries = journalStore.entries
+            let goals = goalsManager.goals
+            
+            let personalizedInsights = insightEngine.generatePersonalizedInsights(
+                checkIns: checkInsArray,
+                breathingLogs: breathingArray,
+                journalEntries: journalEntries,
+                goals: goals,
+                forLastDays: 7
+            )
+            
+            await MainActor.run {
+                self.insights = personalizedInsights
+            }
+        }
+    }
+    
+    private func handleInsightInteraction(_ insight: Insight, dismissed: Bool, actionTaken: Bool) {
+        // Track interaction for personalization
+        personalizationEngine.recordInteraction(
+            insightType: insight.type,
+            dismissed: dismissed,
+            actionTaken: actionTaken
+        )
+        
+        // Store interaction history
+        interactionHistory[insight.id] = (dismissed: dismissed, actionTaken: actionTaken)
+        
+        // Log analytics
+        analytics.logInsightInteraction(
+            insightType: insight.type.rawValue,
+            dismissed: dismissed,
+            actionTaken: actionTaken
+        )
+        
+        // Remove insight from display if dismissed
+        if dismissed {
+            insights.removeAll { $0.id == insight.id }
+        }
     }
 }
 
@@ -373,6 +247,158 @@ struct InsightCardView: View {
         case .alert: return .red
         case .prediction: return .indigo
         case .anomaly: return .pink
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+struct PersonalizationStatusView: View {
+    let complexity: InsightComplexity
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Insight Level")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(complexity.description)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 4) {
+                ForEach(1...4, id: \.self) { level in
+                    Circle()
+                        .fill(level <= complexity.rawValue ? Color.blue : Color(.systemGray5))
+                        .frame(width: 8, height: 8)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+struct PersonalizedInsightCard: View {
+    let insight: Insight
+    let onDismiss: () -> Void
+    let onAction: () -> Void
+    
+    @State private var showingDetails = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with insight type and priority
+            HStack {
+                HStack(spacing: 6) {
+                    insightTypeIcon
+                    Text(insight.type.rawValue)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                if insight.confidence < 1.0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.caption2)
+                        Text("\(Int(insight.confidence * 100))%")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.secondary)
+                }
+            }
+            
+            // Insight message
+            Text(insight.message)
+                .font(.body)
+                .lineLimit(showingDetails ? nil : 3)
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                Button("Dismiss") {
+                    onDismiss()
+                }
+                .buttonStyle(.bordered)
+                .foregroundColor(.secondary)
+                
+                if insight.type == .recommendation || insight.type == .alert {
+                    Button("Take Action") {
+                        onAction()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                
+                Spacer()
+                
+                if insight.message.count > 150 {
+                    Button(showingDetails ? "Show Less" : "Show More") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingDetails.toggle()
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(priorityColor, lineWidth: 2)
+                .opacity(insight.priority >= 7 ? 1 : 0)
+        )
+    }
+    
+    private var insightTypeIcon: some View {
+        Group {
+            switch insight.type {
+            case .observation:
+                Image(systemName: "eye.fill")
+                    .foregroundColor(.blue)
+            case .recommendation:
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+            case .alert:
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+            case .affirmation:
+                Image(systemName: "heart.fill")
+                    .foregroundColor(.pink)
+            case .prediction:
+                Image(systemName: "crystal.ball.fill")
+                    .foregroundColor(.purple)
+            case .anomaly:
+                Image(systemName: "questionmark.diamond.fill")
+                    .foregroundColor(.red)
+            default:
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.gray)
+            }
+        }
+        .font(.caption)
+    }
+    
+    private var priorityColor: Color {
+        switch insight.priority {
+        case 8...10:
+            return .red
+        case 6...7:
+            return .orange
+        case 4...5:
+            return .yellow
+        default:
+            return .clear
         }
     }
 }

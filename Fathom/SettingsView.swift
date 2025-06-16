@@ -16,137 +16,70 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var alertTitle = ""
-    @State private var showingOnboarding = false
+    @State private var isOnboardingPresented = false
+    @State private var enableAnalytics = false
     
     var body: some View {
-        NavigationView {
-            Form {
+        NavigationStack {
+            List {
                 // MARK: - Subscription Section
-                Section("Subscription") {
-                    if subscriptionManager.isProUser {
-                        HStack {
-                            Image(systemName: "crown.fill")
-                                .foregroundColor(.yellow)
-                            Text("Fathom Pro")
-                                .fontWeight(.medium)
-                            Spacer()
-                            Text("Active")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        }
-                    } else {
-                        Button(action: {
-                            showingSubscriptionSheet = true
-                        }) {
-                            HStack {
-                                Image(systemName: "star.circle.fill")
-                                    .foregroundColor(.blue)
-                                VStack(alignment: .leading) {
-                                    Text("Upgrade to Pro")
-                                        .fontWeight(.medium)
-                                    Text("Unlock advanced features")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .foregroundColor(.primary)
+                Section("Account") {
+                    NavigationLink {
+                        SubscriptionView()
+                    } label: {
+                        Label("Subscription", systemImage: "crown.fill")
+                    }
+                }
+                
+                // MARK: - Personalization Section
+                Section("Personalization") {
+                    NavigationLink {
+                        PersonalizationSettingsView()
+                    } label: {
+                        Label("Work Profile & Insights", systemImage: "brain.head.profile")
                     }
                     
-                    Button(action: restorePurchases) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise.circle.fill")
-                                .foregroundColor(.blue)
-                            Text("Restore Purchases")
-                        }
+                    NavigationLink {
+                        NotificationSettingsView()
+                    } label: {
+                        Label("Smart Notifications", systemImage: "bell.badge")
+                    }
+                }
+                
+                // MARK: - App Settings Section
+                Section("App Settings") {
+                    Button {
+                        isOnboardingPresented = true
+                    } label: {
+                        Label("Onboarding", systemImage: "questionmark.circle")
+                    }
+                    
+                    Toggle(isOn: $enableAnalytics) {
+                        Label("Analytics", systemImage: "chart.bar")
                     }
                 }
                 
                 // MARK: - Support Section
                 Section("Support") {
-                    Button(action: sendFeedback) {
-                        HStack {
-                            Image(systemName: "envelope.fill")
-                                .foregroundColor(.blue)
-                            Text("Send Feedback")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    Link(destination: URL(string: "mailto:support@fathomapp.com")!) {
+                        Label("Contact Support", systemImage: "envelope")
                     }
-                    .foregroundColor(.primary)
                     
-                    Button(action: rateApp) {
-                        HStack {
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.yellow)
-                            Text("Rate Fathom")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    Link(destination: URL(string: "https://fathomapp.com/privacy")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
                     }
-                    .foregroundColor(.primary)
                     
-                    Button(action: {
-                        showingOnboarding = true
-                    }) {
-                        HStack {
-                            Image(systemName: "questionmark.circle.fill")
-                                .foregroundColor(.blue)
-                            Text("Onboarding")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    Link(destination: URL(string: "https://fathomapp.com/terms")!) {
+                        Label("Terms of Service", systemImage: "doc.text")
                     }
-                    .foregroundColor(.primary)
-                }
-                
-                // MARK: - Legal Section
-                Section("Legal") {
-                    Button(action: openPrivacyPolicy) {
-                        HStack {
-                            Image(systemName: "hand.raised.fill")
-                                .foregroundColor(.green)
-                            Text("Privacy Policy")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .foregroundColor(.primary)
-                    
-                    Button(action: openTermsOfService) {
-                        HStack {
-                            Image(systemName: "doc.text.fill")
-                                .foregroundColor(.blue)
-                            Text("Terms of Service")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .foregroundColor(.primary)
                 }
                 
                 // MARK: - App Info Section
                 Section("About") {
                     HStack {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(.blue)
                         Text("Version")
                         Spacer()
-                        Text(appVersion)
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
                             .foregroundColor(.secondary)
                     }
                     
@@ -155,7 +88,7 @@ struct SettingsView: View {
                             .foregroundColor(.orange)
                         Text("Build")
                         Spacer()
-                        Text(buildNumber)
+                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
                             .foregroundColor(.secondary)
                     }
                 }
@@ -168,8 +101,8 @@ struct SettingsView: View {
             .sheet(isPresented: $showingMailComposer) {
                 MailComposeView()
             }
-            .sheet(isPresented: $showingOnboarding) {
-                OnboardingView(isPresented: $showingOnboarding)
+            .sheet(isPresented: $isOnboardingPresented) {
+                OnboardingView(isPresented: $isOnboardingPresented)
             }
             .alert(alertTitle, isPresented: $showingAlert) {
                 Button("OK") { }

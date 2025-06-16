@@ -7,9 +7,6 @@
 
 import Foundation
 import StoreKit
-#if canImport(FirebaseAnalytics)
-import FirebaseAnalytics
-#endif
 import Combine
 import SwiftUI
 
@@ -35,17 +32,23 @@ enum SubscriptionTier: String, CaseIterable {
 
 @MainActor
 class SubscriptionManager: ObservableObject {
+    static let shared = SubscriptionManager()
+    
     // MARK: - Published Properties
     @Published var isProUser = false
     @Published var availableProducts: [Product] = []
     @Published var isPurchasing = false
     @Published var purchaseError: String? = nil
+    @Published var restoredProduct: Product? = nil
     
     // MARK: - Developer Bypass
     @AppStorage("developerBypassEnabled") private var developerBypassEnabled = false
     private let developerBypassCode = "fathom2025"
     private var subscriptionUpdateTask: Task<Void, Never>?
     private var transactionListener: Task<Void, Error>?
+    
+    // MARK: - Analytics
+    private let analytics = AnalyticsService.shared
     
     // MARK: - Initialization
     init() {
@@ -79,86 +82,145 @@ class SubscriptionManager: ObservableObject {
     }
     
     func purchase(_ product: Product) async {
+        guard !isPurchasing else { return }
+        
+        isPurchasing = true
+        purchaseError = nil
+        
         do {
-            isPurchasing = true
-            purchaseError = nil
-            
             let result = try await product.purchase()
             
             switch result {
             case .success(let verification):
-                // Check if the transaction is verified
                 switch verification {
                 case .verified(let transaction):
-                    // Log successful purchase event
-                    #if canImport(FirebaseAnalytics)
-                    Analytics.logEvent(AnalyticsEventPurchase, parameters: [
-                        AnalyticsParameterTransactionID: transaction.id,
-                        AnalyticsParameterAffiliation: "App Store",
-                        AnalyticsParameterCurrency: product.priceFormatStyle.currencyCode,
-                        AnalyticsParameterValue: product.price,
-                        AnalyticsParameterItems: [
-                            [
-                                AnalyticsParameterItemID: product.id,
-                                AnalyticsParameterItemName: product.displayName,
-                                AnalyticsParameterPrice: product.price
-                            ]
-                        ]
-                    ])
-                    #endif
-                    // Handle successful purchase
+                    // Transaction verified successfully
                     await transaction.finish()
                     await updateSubscriptionStatus()
+                    
+                    analytics.trackPurchaseCompleted(
+                        transactionID: transaction.id,
+                        productID: product.id,
+                        productName: product.displayName,
+                        productPrice: product.price,
+                        currency: product.priceFormatStyle.currencyCode
+                    )
+                    
                 case .unverified(_, let error):
-                    let errorMessage = "Transaction verification failed: \(error.localizedDescription)"
-                    purchaseError = errorMessage
-                    // Log failed purchase event
-                    #if canImport(FirebaseAnalytics)
-                    Analytics.logEvent("subscription_failed", parameters: [
-                        "error_message": errorMessage,
-                        "product_id": product.id,
-                        "reason": "unverified_transaction"
-                    ])
-                    #endif
+                    purchaseError = "Purchase verification failed. Please try again or contact support."
+                    print("Purchase verification failed: \(error)")
+                    analytics.trackPurchaseFailed(
+                        productID: product.id,
+                        productName: product.displayName,
+                        productPrice: product.price,
+                        currency: product.priceFormatStyle.currencyCode,
+                        error: error.localizedDescription
+                    )
                 }
+                
             case .userCancelled:
-                purchaseError = "Purchase was cancelled"
-                // Log cancelled purchase event
-                #if canImport(FirebaseAnalytics)
-                Analytics.logEvent("subscription_cancelled", parameters: [
-                    "product_id": product.id
-                ])
-                #endif
+                purchaseError = nil // Don't show error for user cancellation
+                analytics.trackPurchaseFailed(
+                    productID: product.id,
+                    productName: product.displayName,
+                    productPrice: product.price,
+                    currency: product.priceFormatStyle.currencyCode,
+                    error: "User cancelled"
+                )
+                
             case .pending:
-                purchaseError = "Purchase is pending approval"
+                purchaseError = "Your purchase is pending approval. You'll receive access once approved."
+                analytics.trackPurchaseFailed(
+                    productID: product.id,
+                    productName: product.displayName,
+                    productPrice: product.price,
+                    currency: product.priceFormatStyle.currencyCode,
+                    error: "Purchase pending"
+                )
+                
             @unknown default:
-                purchaseError = "Unknown purchase result"
+                purchaseError = "An unexpected error occurred. Please try again."
+                analytics.trackPurchaseFailed(
+                    productID: product.id,
+                    productName: product.displayName,
+                    productPrice: product.price,
+                    currency: product.priceFormatStyle.currencyCode,
+                    error: "Unknown error"
+                )
             }
+            
+        } catch StoreKitError.notAvailableInStorefront {
+            purchaseError = "This subscription is not available in your region. Please contact support."
+            analytics.trackPurchaseFailed(
+                productID: product.id,
+                productName: product.displayName,
+                productPrice: product.price,
+                currency: product.priceFormatStyle.currencyCode,
+                error: "Not available in storefront"
+            )
+            
+        } catch StoreKitError.networkError(let underlyingError) {
+            purchaseError = "Network connection failed. Please check your internet connection and try again."
+            analytics.trackPurchaseFailed(
+                productID: product.id,
+                productName: product.displayName,
+                productPrice: product.price,
+                currency: product.priceFormatStyle.currencyCode,
+                error: "Network error: \(underlyingError.localizedDescription)"
+            )
+            
         } catch {
-            let errorMessage = "Error: \(error.localizedDescription)"
-            purchaseError = errorMessage
-            // Log failed purchase event (general error)
-            #if canImport(FirebaseAnalytics)
-            Analytics.logEvent("subscription_failed", parameters: [
-                "error_message": errorMessage,
-                "product_id": product.id, // product might not be in scope here if error is before product assignment, consider if this is always available
-                "reason": "purchase_exception"
-            ])
-            #endif
+            purchaseError = "Purchase failed: \(error.localizedDescription)"
+            print("Purchase error: \(error)")
+            analytics.trackPurchaseFailed(
+                productID: product.id,
+                productName: product.displayName,
+                productPrice: product.price,
+                currency: product.priceFormatStyle.currencyCode,
+                error: error.localizedDescription
+            )
         }
         
         isPurchasing = false
     }
     
     func restorePurchases() async {
+        guard !isPurchasing else { return }
+        
+        isPurchasing = true
+        purchaseError = nil
+        
         do {
-            isPurchasing = true
-            purchaseError = nil
-            
+            // Attempt to sync with App Store
             try await AppStore.sync()
+            
+            // Update subscription status
             await updateSubscriptionStatus()
+            
+            // Check if user has any active subscriptions after restore
+            if !isProUser {
+                purchaseError = "No active subscriptions found. If you believe this is an error, please contact support."
+            }
+            
+            analytics.trackPurchaseRestored(
+                productID: restoredProduct?.id,
+                productName: restoredProduct?.displayName,
+                productPrice: restoredProduct?.price,
+                currency: restoredProduct?.priceFormatStyle.currencyCode
+            )
+            
+        } catch StoreKitError.networkError(let underlyingError) {
+            purchaseError = "Network connection failed. Please check your internet connection and try again."
+            analytics.trackRestoreFailed(
+                error: "Network error: \(underlyingError.localizedDescription)"
+            )
+            
         } catch {
-            purchaseError = "Failed to restore purchases: \(error.localizedDescription)"
+            purchaseError = "Failed to restore purchases. Please try again or contact support if the problem persists."
+            print("Restore purchases error: \(error)")
+            analytics.trackRestoreFailed(
+                error: error.localizedDescription
+            )
         }
         
         isPurchasing = false

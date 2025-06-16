@@ -23,7 +23,7 @@ struct Insight: Identifiable, Hashable {
     }
 }
 
-enum InsightType: String, CaseIterable {
+enum InsightType: String, CaseIterable, Codable {
     case observation = "Observation"
     case question = "Question"
     case suggestion = "Suggestion"

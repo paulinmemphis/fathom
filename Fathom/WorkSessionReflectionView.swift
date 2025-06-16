@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct WorkSessionReflectionView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -7,18 +8,20 @@ struct WorkSessionReflectionView: View {
     // The WorkplaceCheckIn object to update
     @ObservedObject var checkIn: WorkplaceCheckIn
 
-    @State private var focusRating: Int // Use Int for picker, will convert from Int16
-    @State private var stressRating: Int // Use Int for picker, will convert from Int16
-    @State private var sessionNote: String
+    // Reflection data
+    @State private var focusRating: Int = 0
+    @State private var stressRating: Int = 0
+    @State private var sessionNote: String = ""
 
     private let ratingRange = 1...5
 
     init(checkIn: WorkplaceCheckIn) {
         self.checkIn = checkIn
-        // Initialize state from the CheckIn object, providing defaults if nil
-        _focusRating = State(initialValue: Int(checkIn.focusRating))
-        _stressRating = State(initialValue: Int(checkIn.stressRating))
-        _sessionNote = State(initialValue: checkIn.sessionNote ?? "")
+        // Initialize state with defaults until Core Data model is updated
+        // TODO: Uncomment when attributes are added to WorkplaceCheckIn entity
+        // _focusRating = State(initialValue: Int(checkIn.focusRating))
+        // _stressRating = State(initialValue: Int(checkIn.stressRating))
+        // _sessionNote = State(initialValue: checkIn.sessionNote ?? "")
     }
 
     var body: some View {
@@ -72,12 +75,16 @@ struct WorkSessionReflectionView: View {
     }
 
     private func saveReflection() {
+        // Save the reflection data to the checkIn object
         checkIn.focusRating = Int16(focusRating)
         checkIn.stressRating = Int16(stressRating)
         checkIn.sessionNote = sessionNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : sessionNote
 
         do {
             try viewContext.save()
+            Task { @MainActor in
+                UserStatsManager.shared.logReflectionAdded()
+            }
             print("Reflection saved successfully for check-in: \(checkIn.objectID)")
         } catch {
             let nsError = error as NSError

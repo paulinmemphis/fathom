@@ -1,7 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24233.11" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="AchievementStatus" representedClassName="AchievementStatus" syncable="YES">
+        <attribute name="achievementID" optional="YES" attributeType="String"/>
+        <attribute name="currentProgress" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="dateUnlocked" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isUnlocked" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="progress" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="targetProgress" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="unlockedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="BreathingExercise" representedClassName="BreathingExercise" syncable="YES">
+        <attribute name="completedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="exerciseType" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="totalBreaths" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="userRating" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
     <entity name="Item" representedClassName="Item" syncable="YES">
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="UserStats" representedClassName="UserStats" syncable="YES">
+        <attribute name="currentBreathingStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="currentDailyReflectionStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="currentWorkSessionStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastBreathingDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastDailyReflectionDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastWorkSessionDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="longestBreathingStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="longestDailyReflectionStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="longestWorkSessionStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalBreathingExercisesLogged" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalReflectionsAdded" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalWorkSessionsCompleted" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="Workplace" representedClassName="Workplace" syncable="YES">
         <attribute name="address" optional="YES" attributeType="String"/>

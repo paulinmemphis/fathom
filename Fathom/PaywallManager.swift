@@ -9,6 +9,7 @@ struct PaywallManager {
     ///   - onContinue: Closure to execute if the user has access or gains access
     /// - Returns: A view that either shows the paywall or continues to the feature
     @ViewBuilder
+    @MainActor
     static func checkAccess(
         subscriptionManager: SubscriptionManager,
         isPremiumFeature: Bool,

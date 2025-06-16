@@ -7,9 +7,11 @@
 
 import Foundation
 import StoreKit
+#if canImport(FirebaseAnalytics)
+import FirebaseAnalytics
+#endif
 import Combine
 import SwiftUI
-import FirebaseAnalytics
 
 // MARK: - Subscription Products
 enum SubscriptionTier: String, CaseIterable {
@@ -89,6 +91,7 @@ class SubscriptionManager: ObservableObject {
                 switch verification {
                 case .verified(let transaction):
                     // Log successful purchase event
+                    #if canImport(FirebaseAnalytics)
                     Analytics.logEvent(AnalyticsEventPurchase, parameters: [
                         AnalyticsParameterTransactionID: transaction.id,
                         AnalyticsParameterAffiliation: "App Store",
@@ -102,6 +105,7 @@ class SubscriptionManager: ObservableObject {
                             ]
                         ]
                     ])
+                    #endif
                     // Handle successful purchase
                     await transaction.finish()
                     await updateSubscriptionStatus()
@@ -109,18 +113,22 @@ class SubscriptionManager: ObservableObject {
                     let errorMessage = "Transaction verification failed: \(error.localizedDescription)"
                     purchaseError = errorMessage
                     // Log failed purchase event
+                    #if canImport(FirebaseAnalytics)
                     Analytics.logEvent("subscription_failed", parameters: [
                         "error_message": errorMessage,
                         "product_id": product.id,
                         "reason": "unverified_transaction"
                     ])
+                    #endif
                 }
             case .userCancelled:
                 purchaseError = "Purchase was cancelled"
                 // Log cancelled purchase event
+                #if canImport(FirebaseAnalytics)
                 Analytics.logEvent("subscription_cancelled", parameters: [
                     "product_id": product.id
                 ])
+                #endif
             case .pending:
                 purchaseError = "Purchase is pending approval"
             @unknown default:
@@ -130,11 +138,13 @@ class SubscriptionManager: ObservableObject {
             let errorMessage = "Error: \(error.localizedDescription)"
             purchaseError = errorMessage
             // Log failed purchase event (general error)
+            #if canImport(FirebaseAnalytics)
             Analytics.logEvent("subscription_failed", parameters: [
                 "error_message": errorMessage,
                 "product_id": product.id, // product might not be in scope here if error is before product assignment, consider if this is always available
                 "reason": "purchase_exception"
             ])
+            #endif
         }
         
         isPurchasing = false

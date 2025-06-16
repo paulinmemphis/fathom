@@ -101,82 +101,104 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     // MARK: - CLLocationManagerDelegate
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let latestLocation = locations.first else {
-            let locationError = CLError(.locationUnknown)
-            self.error = locationError
-            locationContinuation?.resume(throwing: locationError)
-            return
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let locations = locations
+        Task { @MainActor in
+            guard let latestLocation = locations.first else {
+                let locationError = CLError(.locationUnknown)
+                self.error = locationError
+                locationContinuation?.resume(throwing: locationError)
+                return
+            }
+            
+            self.location = latestLocation
+            self.error = nil
+            locationContinuation?.resume(returning: latestLocation)
         }
-        self.location = latestLocation
-        locationContinuation?.resume(returning: latestLocation)
-        self.error = nil
     }
     
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location manager failed with error: \(error.localizedDescription)")
-        self.error = error
-        locationContinuation?.resume(throwing: error) // This might be problematic if geofencing also fails
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let error = error
+        Task { @MainActor in
+            print("Location manager failed with error: \(error.localizedDescription)")
+            self.error = error
+            locationContinuation?.resume(throwing: error) // This might be problematic if geofencing also fails
+        }
     }
     
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let oldStatus = self.authorizationStatus
-        self.authorizationStatus = manager.authorizationStatus
-        print("Location authorization status changed to: \(authorizationStatus.rawValue)")
-        
-        switch authorizationStatus {
-        case .authorizedAlways:
-            print("Location access: Always authorized.")
-            // If upgrading from WhenInUse, previously started monitoring might now work
-            // Or, if a request was pending, it can now proceed.
-            if oldStatus == .authorizedWhenInUse {
-                // Potentially re-evaluate geofences or notify user
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let authStatus = manager.authorizationStatus
+        Task { @MainActor in
+            let oldStatus = self.authorizationStatus
+            self.authorizationStatus = authStatus
+            print("Location authorization status changed to: \(authorizationStatus.rawValue)")
+            
+            switch authorizationStatus {
+            case .authorizedAlways:
+                print("Location access: Always authorized.")
+                // If upgrading from WhenInUse, previously started monitoring might now work
+                // Or, if a request was pending, it can now proceed.
+                if oldStatus == .authorizedWhenInUse {
+                    // Potentially re-evaluate geofences or notify user
+                }
+            case .authorizedWhenInUse:
+                print("Location access: When in use authorized.")
+                // Geofencing will be limited or not work in background.
+                // Consider guiding user to settings if 'Always' is needed.
+                break
+            case .denied, .restricted:
+                print("Location access: Denied or Restricted.")
+                let authError = CLError(.denied)
+                self.error = authError
+                locationContinuation?.resume(throwing: authError)
+                // Stop all geofencing if permission is revoked
+                for region in locationManager.monitoredRegions {
+                    locationManager.stopMonitoring(for: region)
+                }
+                print("Stopped all geofence monitoring due to permission change.")
+            case .notDetermined:
+                print("Location access: Not determined.")
+                // Still not determined, do nothing until a request is made.
+                break
+            @unknown default:
+                break
             }
-        case .authorizedWhenInUse:
-            print("Location access: When in use authorized.")
-            // Geofencing will be limited or not work in background.
-            // Consider guiding user to settings if 'Always' is needed.
-            break
-        case .denied, .restricted:
-            print("Location access: Denied or Restricted.")
-            let authError = CLError(.denied)
-            self.error = authError
-            locationContinuation?.resume(throwing: authError)
-            // Stop all geofencing if permission is revoked
-            for region in locationManager.monitoredRegions {
-                locationManager.stopMonitoring(for: region)
-            }
-            print("Stopped all geofence monitoring due to permission change.")
-        case .notDetermined:
-            print("Location access: Not determined.")
-            // Still not determined, do nothing until a request is made.
-            break
-        @unknown default:
-            break
         }
     }
 
     // MARK: - CLLocationManagerDelegate (Geofencing)
 
-    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        print("Entered region: \(region.identifier)")
-        regionEventSubject.send((regionIdentifier: region.identifier, eventType: .entry))
+    nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        let regionIdentifier = region.identifier
+        Task { @MainActor in
+            print("Entered region: \(regionIdentifier)")
+            regionEventSubject.send((regionIdentifier: regionIdentifier, eventType: .entry))
+        }
     }
 
-    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        print("Exited region: \(region.identifier)")
-        regionEventSubject.send((regionIdentifier: region.identifier, eventType: .exit))
+    nonisolated func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        let regionIdentifier = region.identifier
+        Task { @MainActor in
+            print("Exited region: \(regionIdentifier)")
+            regionEventSubject.send((regionIdentifier: regionIdentifier, eventType: .exit))
+        }
     }
 
-    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+    nonisolated func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         let regionIdentifier = region?.identifier ?? "Unknown region"
-        print("Failed to monitor region \(regionIdentifier): \(error.localizedDescription)")
-        // Optionally, publish this error or attempt to restart monitoring
-        self.error = error // Consider if this should overwrite other errors
+        let errorDescription = error.localizedDescription
+        Task { @MainActor in
+            print("Failed to monitor region \(regionIdentifier): \(errorDescription)")
+            // Optionally, publish this error or attempt to restart monitoring
+            self.error = error // Consider if this should overwrite other errors
+        }
     }
     
-    func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
-        print("Successfully started monitoring for region \(region.identifier)")
+    nonisolated func locationManager(_ manager: CLLocationManager, didStartMonitoringFor region: CLRegion) {
+        let regionIdentifier = region.identifier
+        Task { @MainActor in
+            print("Successfully started monitoring for region \(regionIdentifier)")
+        }
     }
     
     // MARK: - Private Helpers

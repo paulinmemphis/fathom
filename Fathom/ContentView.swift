@@ -32,6 +32,12 @@ struct ContentView: View {
                     Label("Insights", systemImage: "brain.head.profile")
                 }
                 .environmentObject(subscriptionManager)
+
+            // MARK: - Achievements Tab
+            AchievementsView()
+                .tabItem {
+                    Label("Achievements", systemImage: "star.circle.fill")
+                }
             
             // MARK: - Settings Tab (Placeholder)
             SettingsView()

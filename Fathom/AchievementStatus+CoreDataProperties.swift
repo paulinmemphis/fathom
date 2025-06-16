@@ -2,15 +2,13 @@
 //  AchievementStatus+CoreDataProperties.swift
 //  Fathom
 //
-//  Created by Paul Thomas on 6/13/25.
+//  Created on 12/15/24.
 //
 //
 
-public import Foundation
-public import CoreData
+import Foundation
+import CoreData
 
-
-public typealias AchievementStatusCoreDataPropertiesSet = NSSet
 
 extension AchievementStatus {
 
@@ -18,11 +16,10 @@ extension AchievementStatus {
         return NSFetchRequest<AchievementStatus>(entityName: "AchievementStatus")
     }
 
-    @NSManaged public var achievementID: String?
-    @NSManaged public var currentProgress: Int32
+    @NSManaged public var achievementID: String
+    @NSManaged public var dateUnlocked: Date?
     @NSManaged public var isUnlocked: Bool
-    @NSManaged public var targetProgress: Int32
-    @NSManaged public var unlockedDate: Date?
+    @NSManaged public var progress: Int32
 
 }
 

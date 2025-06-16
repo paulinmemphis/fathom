@@ -51,6 +51,6 @@ struct FathomWidgets: Widget {
         }
         .configurationDisplayName("Fathom Quick Actions")
         .description("Start a focus session or capture a thought.")
-        .supportedFamilies([.systemSmall])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

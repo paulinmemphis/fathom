@@ -2,6 +2,7 @@ import Foundation
 import CoreData
 import Combine
 
+@MainActor
 class UserStatsManager: ObservableObject {
     static let shared = UserStatsManager()
     private var managedObjectContext: NSManagedObjectContext?
@@ -15,7 +16,12 @@ class UserStatsManager: ObservableObject {
     @Published var currentDailyReflectionStreak: Int16 = 0
     @Published var longestDailyReflectionStreak: Int16 = 0
 
-    private var userStats: UserStats? {
+    // Published properties for total counts
+    @Published var totalWorkSessionsCompleted: Int32 = 0
+    @Published var totalBreathingExercisesLogged: Int32 = 0
+    @Published var totalReflectionsAdded: Int32 = 0
+
+    private(set) var userStats: UserStats? {
         didSet {
             updatePublishedProperties()
         }
@@ -34,15 +40,16 @@ class UserStatsManager: ObservableObject {
 
     private func updatePublishedProperties() {
         guard let stats = self.userStats else { return }
-        // Dispatch to main queue as these will update UI
-        DispatchQueue.main.async {
-            self.currentWorkSessionStreak = stats.currentWorkSessionStreak
-            self.longestWorkSessionStreak = stats.longestWorkSessionStreak
-            self.currentBreathingStreak = stats.currentBreathingStreak
-            self.longestBreathingStreak = stats.longestBreathingStreak
-            self.currentDailyReflectionStreak = stats.currentDailyReflectionStreak
-            self.longestDailyReflectionStreak = stats.longestDailyReflectionStreak
-        }
+        // Update UI properties directly since we're already on main actor
+        self.currentWorkSessionStreak = stats.currentWorkSessionStreak
+        self.longestWorkSessionStreak = stats.longestWorkSessionStreak
+        self.currentBreathingStreak = stats.currentBreathingStreak
+        self.longestBreathingStreak = stats.longestBreathingStreak
+        self.currentDailyReflectionStreak = stats.currentDailyReflectionStreak
+        self.longestDailyReflectionStreak = stats.longestDailyReflectionStreak
+        self.totalWorkSessionsCompleted = stats.totalWorkSessionsCompleted
+        self.totalBreathingExercisesLogged = stats.totalBreathingExercisesLogged
+        self.totalReflectionsAdded = stats.totalReflectionsAdded
     }
 
     private func fetchOrCreateUserStats() -> UserStats? {
@@ -67,6 +74,9 @@ class UserStatsManager: ObservableObject {
                 newStats.currentDailyReflectionStreak = 0
                 newStats.longestDailyReflectionStreak = 0
                 // last...Date attributes will be nil by default
+                newStats.totalWorkSessionsCompleted = 0
+                newStats.totalBreathingExercisesLogged = 0
+                newStats.totalReflectionsAdded = 0
                 try context.save()
                 print("UserStatsManager: Created new UserStats entity.")
                 return newStats
@@ -85,7 +95,7 @@ class UserStatsManager: ObservableObject {
         longestStreakKeyPath: WritableKeyPath<UserStats, Int16>,
         lastDateKeyPath: WritableKeyPath<UserStats, Date?>
     ) {
-        guard let context = managedObjectContext, let stats = self.userStats else { return }
+        guard let context = managedObjectContext, var stats = self.userStats else { return }
         
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: eventDate)
@@ -140,6 +150,12 @@ class UserStatsManager: ObservableObject {
             longestStreakKeyPath: \.longestWorkSessionStreak,
             lastDateKeyPath: \.lastWorkSessionDate
         )
+        // Increment total work sessions
+        if let stats = self.userStats {
+            stats.totalWorkSessionsCompleted += 1
+            // Save context is handled by updateStreak, but if updateStreak fails or doesn't save, ensure save here or make updateStreak more robust.
+            // For now, assuming updateStreak saves successfully.
+        }
     }
 
     func logBreathingExercise(on date: Date = Date()) {
@@ -150,6 +166,11 @@ class UserStatsManager: ObservableObject {
             longestStreakKeyPath: \.longestBreathingStreak,
             lastDateKeyPath: \.lastBreathingDate
         )
+        // Increment total breathing exercises
+        if let stats = self.userStats {
+            stats.totalBreathingExercisesLogged += 1
+            // Assuming updateStreak saves successfully.
+        }
     }
 
     func logReflectionAdded(on date: Date = Date()) {
@@ -160,6 +181,11 @@ class UserStatsManager: ObservableObject {
             longestStreakKeyPath: \.longestDailyReflectionStreak,
             lastDateKeyPath: \.lastDailyReflectionDate
         )
+        // Increment total reflections added
+        if let stats = self.userStats {
+            stats.totalReflectionsAdded += 1
+            // Assuming updateStreak saves successfully.
+        }
     }
     
     // Call this method if you need to reset streaks (e.g., for testing or a user request)

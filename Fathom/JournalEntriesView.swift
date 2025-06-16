@@ -35,8 +35,8 @@ struct JournalEntriesView_Workplace: View {
                 }
             }
             .sheet(isPresented: $isShowingNewEntryView) {
-                // The new, specialized entry view will be presented here
-                Text("New Workplace Entry View (To be implemented)")
+                WorkplaceJournalComposeView()
+                    .environmentObject(journalStore)
             }
         }
     }

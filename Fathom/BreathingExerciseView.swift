@@ -3,6 +3,7 @@ import CoreData
 
 struct BreathingExerciseView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var userStatsManager = UserStatsManager.shared
 
     enum BreathingPhase: String {
         case inhale = "Inhale"
@@ -16,7 +17,8 @@ struct BreathingExerciseView: View {
     @State private var phase: BreathingPhase = .inhale
     @State private var phaseProgress: Double = 0.0
     @State private var circleScale: CGFloat = 1.0
-    
+    @State private var sessionStartTime: Date?
+
     // Customize durations (in seconds)
     let inhaleDuration: Double = 4
     let holdDuration: Double = 4
@@ -54,7 +56,7 @@ struct BreathingExerciseView: View {
                         .padding(.horizontal, 40)
                 }
             } else {
-                Button(action: stopExercise) {
+                Button(action: { stopExercise() }) {
                     Text("Stop")
                         .font(.title2)
                         .padding()
@@ -84,41 +86,40 @@ struct BreathingExerciseView: View {
         isRunning = true
         breathCount = 0
         phase = .inhale
+        sessionStartTime = Date()
         animatePhase()
     }
     
-    private func stopExercise(completedSuccessfully: Bool = false) {
+    private func stopExercise() {
         isRunning = false
         timer?.invalidate()
         timer = nil
 
-        if completedSuccessfully {
-            logCompletedExercise()
+        // Save completed breathing exercise session if we completed at least one breath
+        if breathCount > 0, let startTime = sessionStartTime {
+            let newExercise = BreathingExercise(context: viewContext)
+            newExercise.id = UUID()
+            newExercise.completedAt = Date()
+            newExercise.duration = Date().timeIntervalSince(startTime)
+            newExercise.totalBreaths = Int16(breathCount)
+            newExercise.exerciseType = "4-4-6 Breathing" // Current breathing pattern
+            newExercise.userRating = 0 // Could be expanded to ask user for rating
+            
+            do {
+                try viewContext.save()
+                // Update user stats after successful save
+                userStatsManager.logBreathingExercise()
+            } catch {
+                print("Failed to save breathing exercise: \(error)")
+            }
         }
 
         breathCount = 0
         phase = .inhale
         circleScale = 1.0
+        sessionStartTime = nil
     }
 
-    private func logCompletedExercise() {
-        let newLog = BreathingExerciseLog(context: viewContext)
-        newLog.timestamp = Date()
-        newLog.breathsCompleted = Int16(totalBreaths) // Assuming totalBreaths is the intended value
-
-        do {
-            try viewContext.save()
-            print("Breathing exercise logged successfully.")
-        } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // fatalError() causes the application to generate a crash log and terminate.
-            // You should not use this function in a shipping application, although it may be useful during development.
-            let nsError = error as NSError
-            print("Unresolved error \(nsError), \(nsError.userInfo)")
-            // For now, we'll just print the error. Consider more robust error handling.
-        }
-    }
-    
     private func animatePhase() {
         guard isRunning else { return }
         withAnimation(.easeInOut(duration: currentPhaseDuration())) {
@@ -149,7 +150,7 @@ struct BreathingExerciseView: View {
         case .exhale:
             breathCount += 1
             if breathCount >= totalBreaths {
-                stopExercise(completedSuccessfully: true)
+                stopExercise()
                 return
             }
             phase = .inhale
@@ -157,4 +158,3 @@ struct BreathingExerciseView: View {
         animatePhase()
     }
 }
-

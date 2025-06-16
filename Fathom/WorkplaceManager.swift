@@ -300,59 +300,71 @@ class WorkplaceManager: ObservableObject {
     
     /// Check in to a workplace
     func checkIn(to workplace: Workplace, notes: String = "", isAuto: Bool = false) async -> Bool {
-        // First check if there's already an active check-in
-        await checkForActiveCheckIn()
-        
+        await checkForActiveCheckIn() // Ensure activeCheckIn property is up-to-date
+
         if activeCheckIn != nil {
-            errorMessage = "You are already checked in to a workplace. Please check out first."
+            errorMessage = "You are already checked in. Please check out first."
+            print("Attempted to check in while already checked in to \(activeCheckIn?.workplace?.name ?? "a workplace").")
             return false
         }
-        
-        let checkIn = WorkplaceCheckIn(context: viewContext)
-        checkIn.id = UUID()
-        checkIn.workplace = workplace
-        checkIn.checkInTime = Date()
-        checkIn.notes = notes
-        checkIn.isAutoCheckIn = isAuto
-        
+
+        let newCheckIn = WorkplaceCheckIn(context: viewContext)
+        newCheckIn.id = UUID()
+        newCheckIn.workplace = workplace
+        newCheckIn.checkInTime = Date()
+        newCheckIn.notes = notes
+        newCheckIn.isAutoCheckIn = isAuto
+        newCheckIn.checkOutTime = nil // Explicitly nil for new check-ins
+        newCheckIn.isAutoCheckOut = false // Default, will be set on checkout
+
         do {
             try viewContext.save()
-            activeCheckIn = checkIn
+            self.activeCheckIn = newCheckIn
+            print("Successfully checked in to \(workplace.name ?? "Unknown") at \(newCheckIn.checkInTime!)")
+            // Do NOT log work session completion here, only on check-out.
             return true
         } catch {
-            errorMessage = "Failed to check in: \(error.localizedDescription)"
-            print("Error checking in: \(error)")
+            errorMessage = "Failed to save new check-in: \(error.localizedDescription)"
+            print("Error saving new check-in: \(error)")
             viewContext.rollback()
             return false
         }
     }
-    
-    /// Check out from the current workplace
-    func checkOut(notes: String? = nil, isAuto: Bool = false) async -> Bool {
-        await checkForActiveCheckIn()
-        
-        guard let activeCheckIn = activeCheckIn else {
-            errorMessage = "No active check-in found."
+
+    /// Check out from the active workplace
+    func checkOut(notes: String = "", isAuto: Bool = false) async -> Bool {
+        await checkForActiveCheckIn() // Ensure activeCheckIn property is up-to-date
+
+        guard let currentActiveCheckIn = activeCheckIn else {
+            errorMessage = "No active check-in found to check out from."
+            print("Attempted to check out when no active check-in exists.")
             return false
         }
-        
-        activeCheckIn.checkOutTime = Date()
-        if let notes = notes {
-            activeCheckIn.notes = notes
+
+        currentActiveCheckIn.checkOutTime = Date()
+        if !notes.isEmpty {
+            currentActiveCheckIn.notes = (currentActiveCheckIn.notes ?? "") + "\n" + notes // Append notes if any exist
         }
-        activeCheckIn.isAutoCheckOut = isAuto
-        
-        let checkedOutSession = activeCheckIn // Capture before niling
+        currentActiveCheckIn.isAutoCheckOut = isAuto
+
+        let checkedOutSession = currentActiveCheckIn // Capture for reflection sheet and logging
+
         do {
             try viewContext.save()
-            self.activeCheckIn = nil
-            if !isAuto, let sessionToReflect = checkedOutSession {
-                self.presentingReflectionSheetForCheckIn = sessionToReflect
+            self.activeCheckIn = nil // Clear the active check-in
+            print("Successfully checked out from \(checkedOutSession.workplace?.name ?? "Unknown") at \(checkedOutSession.checkOutTime!)")
+            
+            // Log work session completion for streaks/achievements
+            UserStatsManager.shared.logWorkSessionCompleted(on: checkedOutSession.checkOutTime ?? Date())
+
+            // Present reflection sheet if it was a manual checkout
+            if !isAuto {
+                self.presentingReflectionSheetForCheckIn = checkedOutSession
             }
             return true
         } catch {
-            errorMessage = "Failed to check out: \(error.localizedDescription)"
-            print("Error checking out: \(error)")
+            errorMessage = "Failed to save check-out: \(error.localizedDescription)"
+            print("Error saving check-out: \(error)")
             viewContext.rollback()
             return false
         }

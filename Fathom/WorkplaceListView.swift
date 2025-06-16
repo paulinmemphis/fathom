@@ -13,7 +13,11 @@ struct WorkplaceListView: View {
     // MARK: - Body
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) { // Added spacing: 0 if needed, or adjust as preferred
+                StreaksDisplayView()
+                    .padding(.horizontal)
+                    .padding(.top)
+
                 if workplaceManager.workplaces.isEmpty {
                     emptyStateView
                 } else {

@@ -13,6 +13,9 @@ import Combine
 @MainActor
 class WorkplaceJournalStore: ObservableObject {
     
+    /// Shared singleton instance
+    static let shared = WorkplaceJournalStore()
+    
     /// The array of journal entries displayed in the UI.
     /// The @Published property wrapper automatically announces changes to any SwiftUI views observing this object.
     @Published var entries: [WorkplaceJournalEntry] = []
@@ -41,5 +44,10 @@ class WorkplaceJournalStore: ObservableObject {
                 focusScore: 0.9
             )
         ]
+    }
+    
+    /// Adds a new journal entry to the store
+    func addEntry(_ entry: WorkplaceJournalEntry) {
+        entries.insert(entry, at: 0) // Insert at the beginning for newest first
     }
 }

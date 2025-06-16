@@ -12,6 +12,9 @@ extension WorkplaceCheckIn {
     @NSManaged public var notes: String?
     @NSManaged public var isAutoCheckIn: Bool
     @NSManaged public var isAutoCheckOut: Bool
+    @NSManaged public var focusRating: Int16
+    @NSManaged public var stressRating: Int16
+    @NSManaged public var sessionNote: String?
     @NSManaged public var workplace: Workplace?
 }
 

@@ -260,7 +260,6 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         
         // Set up the NotificationCenter publisher here where we can safely access actor properties
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .receive(on: DispatchQueue.main)
             .sink { [actor = self] _ in
                 Task {
                     await actor.loadUserPreferences()

@@ -5,13 +5,16 @@
 //  Created by Paul Thomas on 6/10/25.
 //
 
-import Testing
+import XCTest
 @testable import Fathom
 
-struct FathomTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+final class FathomTests: XCTestCase {
+    
+    func testExample() throws {
+        // This is an example of a functional test case.
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Any test you write for XCTest can be annotated as throws and async.
+        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
+        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
     }
-
 }

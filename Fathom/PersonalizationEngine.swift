@@ -1,7 +1,10 @@
 import Foundation
-import CoreData
 import UserNotifications
 import Combine
+
+// MARK: - Type Aliases
+
+typealias UserPreferencesDictionary = [InsightType: UserPreference]
 
 // MARK: - Personalization Data Structures
 
@@ -13,8 +16,8 @@ enum ContextualTriggerType: String, CaseIterable, Codable {
     case reflectionPrompt = "reflection_prompt"
 }
 
-struct ContextualTrigger: Codable, Identifiable {
-    let id = UUID()
+struct ContextualTrigger: Codable, Identifiable, Sendable {
+    let id: UUID
     let name: String
     let type: ContextualTriggerType
     let message: String
@@ -22,13 +25,19 @@ struct ContextualTrigger: Codable, Identifiable {
     let cooldownHours: Double // How long to wait before triggering again
     var lastTriggered: Date?
     
-    init(name: String, type: ContextualTriggerType, message: String, priority: Int = 5, cooldownHours: Double = 2.0) {
+    enum CodingKeys: String, CodingKey {
+        case id, name, type, message, priority, cooldownHours, lastTriggered
+    }
+    
+    init(id: UUID = UUID(), name: String, type: ContextualTriggerType, message: String, 
+         priority: Int = 5, cooldownHours: Double = 2.0, lastTriggered: Date? = nil) {
+        self.id = id
         self.name = name
         self.type = type
         self.message = message
         self.priority = priority
         self.cooldownHours = cooldownHours
-        self.lastTriggered = nil
+        self.lastTriggered = lastTriggered
     }
     
     var canTrigger: Bool {
@@ -38,36 +47,53 @@ struct ContextualTrigger: Codable, Identifiable {
     }
 }
 
-struct NotificationContext: Codable {
+struct NotificationContext: Codable, Sendable {
     let workplaceName: String?
     let sessionDuration: Int // in minutes
     let stressLevel: Double?
     let focusLevel: Double?
     let timestamp: Date
     
-    init(workplaceName: String? = nil, sessionDuration: Int = 0, stressLevel: Double? = nil, focusLevel: Double? = nil) {
+    enum CodingKeys: String, CodingKey {
+        case workplaceName, sessionDuration, stressLevel, focusLevel, timestamp
+    }
+    
+    init(workplaceName: String? = nil, sessionDuration: Int = 0, 
+         stressLevel: Double? = nil, focusLevel: Double? = nil, timestamp: Date = Date()) {
         self.workplaceName = workplaceName
         self.sessionDuration = sessionDuration
         self.stressLevel = stressLevel
         self.focusLevel = focusLevel
-        self.timestamp = Date()
+        self.timestamp = timestamp
     }
 }
 
-struct UserPreference: Codable {
-    let id = UUID()
+struct UserPreference: Codable, Sendable {
+    let id: UUID
     var insightType: InsightType
     var engagementScore: Double // 0.0 to 1.0, based on user interactions
     var dismissalRate: Double // 0.0 to 1.0, how often user dismisses this type
-    var actionTakenRate: Double // 0.0 to 1.0, how often user acts on insights
+    var actionRate: Double // 0.0 to 1.0, how often user takes action
     var lastUpdated: Date
+    var viewCount: Int
+    var dismissalCount: Int
+    var actionCount: Int
     
-    init(insightType: InsightType) {
+    enum CodingKeys: String, CodingKey {
+        case id, insightType, engagementScore, dismissalRate, actionRate, lastUpdated, viewCount, dismissalCount, actionCount
+    }
+    
+    init(id: UUID = UUID(), insightType: InsightType, engagementScore: Double = 0.5, 
+         dismissalRate: Double = 0.1, actionRate: Double = 0.3, lastUpdated: Date = Date(), viewCount: Int = 0, dismissalCount: Int = 0, actionCount: Int = 0) {
+        self.id = id
         self.insightType = insightType
-        self.engagementScore = 0.5 // neutral starting point
-        self.dismissalRate = 0.0
-        self.actionTakenRate = 0.0
-        self.lastUpdated = Date()
+        self.engagementScore = engagementScore
+        self.dismissalRate = dismissalRate
+        self.actionRate = actionRate
+        self.lastUpdated = lastUpdated
+        self.viewCount = viewCount
+        self.dismissalCount = dismissalCount
+        self.actionCount = actionCount
     }
     
     mutating func updateEngagement(dismissed: Bool, actionTaken: Bool) {
@@ -79,7 +105,7 @@ struct UserPreference: Codable {
         } else {
             dismissalRate = dismissalRate * (1 - weight)
             if actionTaken {
-                actionTakenRate = actionTakenRate * (1 - weight) + weight
+                actionRate = actionRate * (1 - weight) + weight
                 engagementScore = min(1.0, engagementScore + weight)
             }
         }
@@ -88,171 +114,313 @@ struct UserPreference: Codable {
     }
 }
 
-enum WorkRole: String, CaseIterable, Codable {
+enum WorkRole: String, CaseIterable, Codable, Sendable {
     case developer = "Developer"
     case designer = "Designer"
     case manager = "Manager"
     case analyst = "Analyst"
     case consultant = "Consultant"
-    case researcher = "Researcher"
+    case educator = "Educator"
+    case healthcare = "Healthcare Professional"
     case executive = "Executive"
-    case support = "Support"
-    case sales = "Sales"
-    case marketing = "Marketing"
     case other = "Other"
     
-    var typicalStressors: [String] {
-        switch self {
-        case .developer:
-            return ["debugging", "deadlines", "code complexity", "technical debt"]
-        case .designer:
-            return ["creative blocks", "feedback loops", "visual perfectionism", "client revisions"]
-        case .manager:
-            return ["team conflicts", "resource allocation", "meeting overload", "decision fatigue"]
-        case .analyst:
-            return ["data accuracy", "complex analysis", "reporting deadlines", "stakeholder expectations"]
-        case .consultant:
-            return ["client management", "travel fatigue", "knowledge gaps", "project scope creep"]
-        case .researcher:
-            return ["literature reviews", "experiment failures", "publication pressure", "funding concerns"]
-        case .executive:
-            return ["strategic decisions", "board meetings", "market pressure", "leadership burden"]
-        case .support:
-            return ["customer frustration", "issue resolution", "knowledge gaps", "escalation pressure"]
-        case .sales:
-            return ["quota pressure", "client rejection", "pipeline management", "competition"]
-        case .marketing:
-            return ["campaign performance", "brand consistency", "creative approval", "ROI pressure"]
-        case .other:
-            return ["workload", "deadlines", "communication", "priorities"]
-        }
+    var description: String {
+        return rawValue
     }
     
-    var focusPatterns: [String] {
+    var suggestedInsightTypes: [InsightType] {
         switch self {
         case .developer:
-            return ["deep work blocks", "minimal interruptions", "morning focus", "flow state"]
+            return [.trend, .correlation, .prediction]
         case .designer:
-            return ["creative sprints", "inspiration breaks", "visual exploration", "iterative refinement"]
+            return [.trend, .workplaceSpecific, .goalProgress]
         case .manager:
-            return ["time blocking", "communication windows", "strategic thinking", "team alignment"]
+            return [.workplaceSpecific, .goalProgress, .prediction]
         case .analyst:
-            return ["data deep dives", "analytical blocks", "visualization time", "validation periods"]
+            return [.correlation, .anomaly, .prediction]
         case .consultant:
-            return ["client prep", "knowledge synthesis", "presentation building", "solution crafting"]
-        case .researcher:
-            return ["literature blocks", "experiment design", "data analysis", "writing sessions"]
+            return [.workplaceSpecific, .trend, .goalProgress]
+        case .educator:
+            return [.goalProgress, .affirmation, .suggestion]
+        case .healthcare:
+            return [.affirmation, .suggestion, .alert]
         case .executive:
-            return ["strategic blocks", "decision windows", "stakeholder alignment", "vision crafting"]
-        case .support:
-            return ["ticket batching", "knowledge updates", "escalation handling", "process improvement"]
-        case .sales:
-            return ["prospect research", "call preparation", "relationship building", "deal progression"]
-        case .marketing:
-            return ["campaign planning", "content creation", "performance analysis", "creative development"]
+            return [.prediction, .workplaceSpecific, .trend]
         case .other:
-            return ["task batching", "priority setting", "communication blocks", "skill development"]
+            return [.suggestion, .affirmation, .goalProgress]
         }
     }
 }
 
-enum WorkIndustry: String, CaseIterable, Codable {
+enum WorkIndustry: String, CaseIterable, Codable, Sendable {
     case technology = "Technology"
     case healthcare = "Healthcare"
     case finance = "Finance"
     case education = "Education"
-    case consulting = "Consulting"
     case retail = "Retail"
     case manufacturing = "Manufacturing"
+    case consulting = "Consulting"
     case media = "Media"
     case government = "Government"
     case nonprofit = "Nonprofit"
     case other = "Other"
     
-    var culturalNorms: [String: Any] {
+    struct CulturalNorms: Codable {
+        let pace: String
+        let hierarchy: String
+        let communication: String
+        let workLifeBalance: String
+    }
+    
+    var culturalNorms: CulturalNorms {
         switch self {
         case .technology:
-            return ["pace": "fast", "hierarchy": "flat", "communication": "informal", "innovation": "high"]
+            return CulturalNorms(pace: "Fast", hierarchy: "Flat", communication: "Direct", workLifeBalance: "Flexible")
         case .healthcare:
-            return ["pace": "urgent", "hierarchy": "structured", "communication": "precise", "compliance": "strict"]
+            return CulturalNorms(pace: "Urgent", hierarchy: "Structured", communication: "Precise", workLifeBalance: "Demanding")
         case .finance:
-            return ["pace": "intense", "hierarchy": "formal", "communication": "formal", "risk": "managed"]
+            return CulturalNorms(pace: "Fast", hierarchy: "Hierarchical", communication: "Formal", workLifeBalance: "Intense")
         case .education:
-            return ["pace": "cyclical", "hierarchy": "traditional", "communication": "collaborative", "purpose": "mission-driven"]
-        case .consulting:
-            return ["pace": "variable", "hierarchy": "project-based", "communication": "client-focused", "expertise": "specialized"]
+            return CulturalNorms(pace: "Steady", hierarchy: "Collaborative", communication: "Supportive", workLifeBalance: "Seasonal")
         case .retail:
-            return ["pace": "seasonal", "hierarchy": "operational", "communication": "customer-centric", "metrics": "performance-driven"]
+            return CulturalNorms(pace: "Variable", hierarchy: "Clear", communication: "Customer-focused", workLifeBalance: "Shift-based")
         case .manufacturing:
-            return ["pace": "steady", "hierarchy": "structured", "communication": "process-focused", "efficiency": "optimized"]
+            return CulturalNorms(pace: "Consistent", hierarchy: "Clear", communication: "Safety-focused", workLifeBalance: "Structured")
+        case .consulting:
+            return CulturalNorms(pace: "Project-driven", hierarchy: "Client-focused", communication: "Analytical", workLifeBalance: "Variable")
         case .media:
-            return ["pace": "deadline-driven", "hierarchy": "creative", "communication": "storytelling", "trends": "trend-aware"]
+            return CulturalNorms(pace: "Deadline-driven", hierarchy: "Creative", communication: "Collaborative", workLifeBalance: "Irregular")
         case .government:
-            return ["pace": "methodical", "hierarchy": "formal", "communication": "regulatory", "transparency": "required"]
+            return CulturalNorms(pace: "Methodical", hierarchy: "Formal", communication: "Procedural", workLifeBalance: "Stable")
         case .nonprofit:
-            return ["pace": "mission-driven", "hierarchy": "collaborative", "communication": "impact-focused", "resources": "constrained"]
+            return CulturalNorms(pace: "Mission-driven", hierarchy: "Collaborative", communication: "Values-based", workLifeBalance: "Purpose-focused")
         case .other:
-            return ["pace": "variable", "hierarchy": "mixed", "communication": "adaptive", "culture": "diverse"]
+            return CulturalNorms(pace: "Variable", hierarchy: "Variable", communication: "Adaptive", workLifeBalance: "Variable")
         }
     }
 }
 
-enum InsightComplexity: Int, CaseIterable {
-    case basic = 1      // Simple observations
-    case intermediate = 2   // Pattern recognition
-    case advanced = 3       // Predictive insights
-    case expert = 4         // Complex correlations and recommendations
+enum InsightComplexity: String, CaseIterable, Codable, Sendable {
+    case basic = "Basic"
+    case intermediate = "Intermediate"
+    case advanced = "Advanced"
     
+    var intValue: Int {
+        switch self {
+        case .basic:
+            return 1
+        case .intermediate:
+            return 2
+        case .advanced:
+            return 3
+        }
+    }
+
     var description: String {
         switch self {
-        case .basic: return "Basic observations about your work patterns"
-        case .intermediate: return "Pattern recognition and trend analysis"
-        case .advanced: return "Predictive insights and forecasting"
-        case .expert: return "Advanced correlations and strategic recommendations"
+        case .basic:
+            return "Simple, actionable insights"
+        case .intermediate:
+            return "Moderate complexity with some analysis"
+        case .advanced:
+            return "Complex insights requiring deeper understanding"
         }
     }
 }
 
 // MARK: - Personalization Engine
 
-@MainActor
-class PersonalizationEngine: ObservableObject {
+actor PersonalizationEngine: ObservableObject, Sendable {
     static let shared = PersonalizationEngine()
     
-    @Published var userPreferences: [InsightType: UserPreference] = [:]
-    @Published var userRole: WorkRole = .other
-    @Published var userIndustry: WorkIndustry = .other
-    @Published var insightComplexity: InsightComplexity = .basic
-    @Published var contextualTriggers: [ContextualTrigger] = []
+    @Published private(set) var userRole: WorkRole = .other
+    @Published private(set) var userIndustry: WorkIndustry = .other
+    @Published private(set) var insightComplexity: InsightComplexity = .basic
+    
+    private var userPreferences: UserPreferencesDictionary = [:]
+    private var contextualTriggers: [ContextualTrigger] = []
     
     private let userDefaults = UserDefaults.standard
-    private let preferencesKey = "PersonalizationPreferences"
-    private let roleKey = "UserWorkRole"
-    private let industryKey = "UserIndustry"
-    private let complexityKey = "InsightComplexity"
+    private var cancellables = Set<AnyCancellable>()
+    
+    private let notificationCenter: UNUserNotificationCenter
     
     private init() {
-        loadUserPreferences()
-        setupDefaultTriggers()
-        updateComplexityBasedOnUsage()
+        notificationCenter = UNUserNotificationCenter.current()
+        // NOTE: You must call await PersonalizationEngine.shared.initialize() after creation to complete setup.
+        // Do NOT call actor-isolated methods here.
+    }
+
+    /// Call this after creation to complete async setup
+    func initialize() async {
+        await loadUserPreferences()
+        await setupDefaultTriggers()
+        await updateComplexityBasedOnUsage()
+        
+        // Set up the NotificationCenter publisher here where we can safely access actor properties
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [actor = self] _ in
+                Task {
+                    await actor.loadUserPreferences()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Public Interface
+    
+    func updateUserRole(_ role: WorkRole) {
+        userRole = role
+        userDefaults.set(role.rawValue, forKey: "userRole")
+        updateContextualTriggersForProfile()
+    }
+    
+    func updateUserIndustry(_ industry: WorkIndustry) {
+        userIndustry = industry
+        userDefaults.set(industry.rawValue, forKey: "userIndustry")
+        updateContextualTriggersForProfile()
+    }
+    
+    func updateInsightComplexity(_ complexity: InsightComplexity) {
+        insightComplexity = complexity
+        userDefaults.set(complexity.rawValue, forKey: "insightComplexity")
     }
     
     // MARK: - Preference Learning
     
-    func recordInteraction(insightType: InsightType, dismissed: Bool, actionTaken: Bool) {
-        if userPreferences[insightType] == nil {
-            userPreferences[insightType] = UserPreference(insightType: insightType)
-        }
-        
-        userPreferences[insightType]?.updateEngagement(dismissed: dismissed, actionTaken: actionTaken)
+    func recordInsightEngagement(_ type: InsightType, wasDismissed: Bool, actionTaken: Bool) {
+        var preference = userPreferences[type] ?? UserPreference(insightType: type)
+        preference.updateEngagement(dismissed: wasDismissed, actionTaken: actionTaken)
+        userPreferences[type] = preference
         saveUserPreferences()
-        
-        // Adapt complexity based on engagement
-        updateComplexityBasedOnUsage()
     }
     
-    func getPreferenceScore(for insightType: InsightType) -> Double {
-        return userPreferences[insightType]?.engagementScore ?? 0.5
+    func getEngagementScore(for type: InsightType) -> Double {
+        return userPreferences[type]?.engagementScore ?? 0.5
+    }
+    
+    func getInsightPriority(_ type: InsightType) -> Double {
+        // Base priority on engagement score and complexity level
+        let baseScore = getEngagementScore(for: type)
+        let complexityMultiplier: Double
+        
+        switch insightComplexity {
+        case .basic:
+            complexityMultiplier = 1.0
+        case .intermediate:
+            complexityMultiplier = 1.2
+        case .advanced:
+            complexityMultiplier = 1.5
+        }
+        
+        return baseScore * complexityMultiplier
+    }
+    
+    func recordInteraction(for insightType: InsightType, action: InteractionAction) async {
+        var preference = userPreferences[insightType] ?? UserPreference(insightType: insightType)
+        
+        switch action {
+        case .viewed:
+            preference.viewCount += 1
+        case .dismissed:
+            preference.dismissalCount += 1
+        case .actionTaken:
+            preference.actionCount += 1
+            preference.engagementScore = min(1.0, preference.engagementScore + 0.1)
+        }
+        
+        // Update engagement score based on interaction patterns
+        let totalInteractions = preference.viewCount + preference.dismissalCount + preference.actionCount
+        if totalInteractions > 0 {
+            let positiveRatio = Double(preference.actionCount) / Double(totalInteractions)
+            let dismissalPenalty = Double(preference.dismissalCount) / Double(totalInteractions) * 0.3
+            preference.engagementScore = max(0.0, min(1.0, positiveRatio - dismissalPenalty))
+        }
+        
+        userPreferences[insightType] = preference
+        saveUserPreferences()
+    }
+    
+    enum InteractionAction {
+        case viewed
+        case dismissed
+        case actionTaken
+    }
+    
+    // MARK: - Insight Adaptation and Filtering
+    
+    func filterInsightsByComplexity(_ insights: [Insight]) -> [Insight] {
+        let userMaxComplexity = insightComplexity
+        return insights.filter { insight in
+            let insightComplexity = complexityForInsightType(insight.type)
+            switch userMaxComplexity {
+            case .basic:
+                return insightComplexity == .basic
+            case .intermediate:
+                return insightComplexity == .basic || insightComplexity == .intermediate
+            case .advanced:
+                return true
+            }
+        }
+    }
+    
+    private func complexityForInsightType(_ type: InsightType) -> InsightComplexity {
+        // Map insight types to complexity levels
+        switch type {
+        case .trend:
+            return .basic
+        case .workplaceSpecific, .goalProgress, .correlation:
+            return .intermediate
+        case .anomaly, .prediction:
+            return .advanced
+        case .alert, .suggestion, .affirmation:
+            return .basic
+        case .observation, .question:
+            return .basic
+        case .warning, .celebration:
+            return .basic
+        }
+    }
+    
+    // MARK: - Insight Adaptation
+    
+    private func adaptInsightForProfile(_ insight: Insight) -> Insight {
+        var adaptedInsight = insight
+        
+        // Adjust message based on user's role and industry
+        adaptedInsight.message = insight.message
+        
+        // Adjust priority based on user preferences
+        if let preference = userPreferences[insight.type] {
+            // Increase priority for insights the user engages with
+            if preference.engagementScore > 0.7 {
+                adaptedInsight.priority += 1
+            }
+            // Decrease priority for insights the user often dismisses
+            else if preference.dismissalRate > 0.5 {
+                adaptedInsight.priority = max(1, adaptedInsight.priority - 1)
+            }
+            
+            // Adjust confidence based on action rate
+            adaptedInsight.confidence = min(1.0, adaptedInsight.confidence * (0.8 + (preference.actionRate * 0.2)))
+        }
+        
+        // Apply role-specific adaptations
+        switch userRole {
+        case .manager:
+            adaptedInsight.message = adaptedInsight.message.replacingOccurrences(of: "you", with: "your team")
+        case .executive:
+            // Add more strategic language for executives
+            if !adaptedInsight.message.contains("strategic") {
+                adaptedInsight.message = "From a strategic perspective: " + adaptedInsight.message
+            }
+        default:
+            break
+        }
+        
+        return adaptedInsight
     }
     
     // MARK: - Industry/Role Adaptation
@@ -261,83 +429,21 @@ class PersonalizationEngine: ObservableObject {
         userRole = role
         userIndustry = industry
         
-        userDefaults.set(role.rawValue, forKey: roleKey)
-        userDefaults.set(industry.rawValue, forKey: industryKey)
+        userDefaults.set(role.rawValue, forKey: "userRole")
+        userDefaults.set(industry.rawValue, forKey: "userIndustry")
         
         updateContextualTriggersForProfile()
     }
     
-    func adaptInsightForProfile(_ insight: Insight) -> Insight {
-        var adaptedInsight = insight
-        
-        // Customize message based on role-specific language and concerns
-        if insight.message.contains("stress") {
-            let roleStressors = userRole.typicalStressors
-            if !roleStressors.isEmpty {
-                let relevantStressor = roleStressors.randomElement() ?? "work pressure"
-                adaptedInsight.message = adaptedInsight.message.replacingOccurrences(
-                    of: "stress",
-                    with: "\(relevantStressor) stress"
-                )
-            }
-        }
-        
-        // Adjust priority based on industry culture
-        let culturalNorms = userIndustry.culturalNorms
-        if let pace = culturalNorms["pace"] as? String {
-            switch pace {
-            case "fast", "intense", "urgent":
-                adaptedInsight.priority = min(10, adaptedInsight.priority + 1)
-            case "methodical", "steady":
-                adaptedInsight.priority = max(1, adaptedInsight.priority - 1)
-            default:
-                break
-            }
-        }
-        
-        return adaptedInsight
+    func setInsightComplexity(_ complexity: InsightComplexity) {
+        insightComplexity = complexity
+        userDefaults.set(complexity.rawValue, forKey: "insightComplexity")
     }
     
-    // MARK: - Progressive Insights
-    
-    private func updateComplexityBasedOnUsage() {
-        let totalEngagement = userPreferences.values.map { $0.engagementScore }.reduce(0, +)
-        let averageEngagement = totalEngagement / Double(max(1, userPreferences.count))
-        let totalInteractions = userPreferences.count
-        
-        let newComplexity: InsightComplexity
-        
-        if totalInteractions < 10 || averageEngagement < 0.3 {
-            newComplexity = .basic
-        } else if totalInteractions < 25 || averageEngagement < 0.6 {
-            newComplexity = .intermediate
-        } else if totalInteractions < 50 || averageEngagement < 0.8 {
-            newComplexity = .advanced
-        } else {
-            newComplexity = .expert
-        }
-        
-        if newComplexity != insightComplexity {
-            insightComplexity = newComplexity
-            userDefaults.set(newComplexity.rawValue, forKey: complexityKey)
-        }
+    func savePreferences() {
+        saveUserPreferences()
     }
-    
-    func filterInsightsByComplexity(_ insights: [Insight]) -> [Insight] {
-        return insights.filter { insight in
-            switch insightComplexity {
-            case .basic:
-                return insight.type == .observation || insight.type == .affirmation
-            case .intermediate:
-                return insight.type != .prediction && insight.confidence >= 0.6
-            case .advanced:
-                return insight.confidence >= 0.4
-            case .expert:
-                return true // Show all insights at expert level
-            }
-        }
-    }
-    
+
     // MARK: - Contextual Triggers
     
     private func setupDefaultTriggers() {
@@ -404,59 +510,136 @@ class PersonalizationEngine: ObservableObject {
         }
     }
     
-    func evaluateContextualTriggers(for checkIn: WorkplaceCheckIn) -> [ContextualTrigger] {
-        return contextualTriggers.filter { trigger in
-            trigger.canTrigger && trigger.type == .highStress ? Double(checkIn.stressRating) >= 4.0 : trigger.type == .lowFocus ? Double(checkIn.focusRating) <= 2.0 : trigger.type == .longSession ? (checkIn.checkOutTime?.timeIntervalSince(checkIn.checkInTime ?? Date()) ?? 0) > 4 * 3600 : false
-        }
-    }
+    // MARK: - Progressive Insights
     
-    func markTriggerUsed(_ trigger: ContextualTrigger) {
-        if let index = contextualTriggers.firstIndex(where: { $0.id == trigger.id }) {
-            contextualTriggers[index].lastTriggered = Date()
+    private func updateComplexityBasedOnUsage() {
+        let totalInteractions = userPreferences.values.reduce(0) { $0 + Int($1.engagementScore * 100) }
+        
+        if totalInteractions > 500 {
+            insightComplexity = .advanced
+        } else if totalInteractions > 200 {
+            insightComplexity = .intermediate
+        } else {
+            insightComplexity = .basic
         }
+        
+        userDefaults.set(insightComplexity.rawValue, forKey: "insightComplexity")
     }
     
     // MARK: - Persistence
     
     private func saveUserPreferences() {
         do {
-            let data = try JSONEncoder().encode(userPreferences)
-            userDefaults.set(data, forKey: preferencesKey)
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(userPreferences)
+            userDefaults.set(data, forKey: "userPreferences")
+            userDefaults.set(userRole.rawValue, forKey: "userRole")
+            userDefaults.set(userIndustry.rawValue, forKey: "userIndustry")
+            userDefaults.set(insightComplexity.rawValue, forKey: "insightComplexity")
         } catch {
             print("Failed to save user preferences: \(error)")
         }
     }
     
-    private func loadUserPreferences() {
+    private func loadUserPreferences() async {
         // Load preferences
-        if let data = userDefaults.data(forKey: preferencesKey),
-           let preferences = try? JSONDecoder().decode([InsightType: UserPreference].self, from: data) {
-            userPreferences = preferences
+        if let data = userDefaults.data(forKey: "userPreferences") {
+            do {
+                userPreferences = try JSONDecoder().decode(UserPreferencesDictionary.self, from: data)
+            } catch {
+                print("Failed to load user preferences: \(error)")
+                userPreferences = [:]
+            }
         }
         
-        // Load role and industry
-        if let roleString = userDefaults.string(forKey: roleKey),
-           let role = WorkRole(rawValue: roleString) {
-            userRole = role
+        // Load complexity setting
+        if let complexityRaw = userDefaults.object(forKey: "insightComplexity") as? String {
+            insightComplexity = InsightComplexity(rawValue: complexityRaw) ?? .basic
         }
         
-        if let industryString = userDefaults.string(forKey: industryKey),
-           let industry = WorkIndustry(rawValue: industryString) {
-            userIndustry = industry
+        // Load other settings
+        userRole = WorkRole(rawValue: userDefaults.string(forKey: "userRole") ?? "") ?? .other
+        userIndustry = WorkIndustry(rawValue: userDefaults.string(forKey: "userIndustry") ?? "") ?? .other
+    }
+    
+    // MARK: - Contextual Triggers
+    
+    func evaluateContextualTriggers(for checkIn: WorkplaceCheckIn) -> [ContextualTrigger] {
+        var activeTriggers: [ContextualTrigger] = []
+        
+        // Check each trigger to see if it should be activated
+        for trigger in contextualTriggers {
+            if shouldTrigger(trigger, for: checkIn) {
+                activeTriggers.append(trigger)
+            }
         }
         
-        // Load complexity
-        let complexityValue = userDefaults.integer(forKey: complexityKey)
-        if let complexity = InsightComplexity(rawValue: complexityValue) {
-            insightComplexity = complexity
+        // Sort by priority (highest first)
+        return activeTriggers.sorted { $0.priority > $1.priority }
+    }
+    
+    private func shouldTrigger(_ trigger: ContextualTrigger, for checkIn: WorkplaceCheckIn) -> Bool {
+        // Check cooldown
+        guard trigger.canTrigger else { return false }
+        
+        switch trigger.type {
+        case .highStress:
+            // Trigger if stress level is above threshold
+            return checkIn.stressLevel > 0.7
+            
+        case .lowFocus:
+            // Trigger if focus level is below threshold
+            return checkIn.focusLevel < 0.4
+            
+        case .longSession:
+            // Trigger if session duration is long
+            return checkIn.sessionDuration > 120 // 2 hours
+            
+        case .workplacePattern:
+            // Check for specific workplace patterns
+            return checkWorkplacePatterns(for: checkIn)
+            
+        case .reflectionPrompt:
+            // Random chance for reflection prompt, but not too often
+            return Int.random(in: 1...100) <= 10 // 10% chance
         }
     }
-}
-
-// MARK: - Personalization Extensions for InsightEngine
-
-extension InsightEngine {
     
+    private func checkWorkplacePatterns(for checkIn: WorkplaceCheckIn) -> Bool {
+        // Implement specific workplace pattern checks
+        // This is a simplified example - you'd want to make this more sophisticated
+        
+        // Example: Check if this is a common time for high stress
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: checkIn.timestamp)
+        
+        // If it's late afternoon (3-5pm) and stress is increasing
+        if (15...17).contains(hour) {
+            return checkIn.stressLevel > 0.6
+        }
+        
+        return false
+    }
+    
+    func markTriggerUsed(_ trigger: ContextualTrigger) {
+        if let index = contextualTriggers.firstIndex(where: { $0.id == trigger.id }) {
+            var updatedTrigger = contextualTriggers[index]
+            updatedTrigger.lastTriggered = Date()
+            contextualTriggers[index] = updatedTrigger
+        }
+    }
+    
+    // MARK: - Insight Generation
+    
+    /// Generates personalized insights based on user data and preferences
+    /// - Parameters:
+    ///   - checkIns: Array of workplace check-ins
+    ///   - breathingLogs: Array of breathing exercise logs (optional)
+    ///   - journalEntries: Array of journal entries (optional)
+    ///   - goals: Array of user goals (optional)
+    ///   - days: Number of days to look back for insights (default: 7)
+    ///   - referenceDate: Reference date for time-based calculations (default: current date)
+    /// - Returns: Array of personalized insights
     func generatePersonalizedInsights(
         checkIns: [WorkplaceCheckIn],
         breathingLogs: [BreathingExercise] = [],
@@ -464,56 +647,49 @@ extension InsightEngine {
         goals: [UserGoal] = [],
         forLastDays days: Int = 7,
         referenceDate: Date = Date()
-    ) -> [Insight] {
-        
-        let personalization = PersonalizationEngine.shared
-        
-        // Generate base insights
-        var insights = generateInsights(
-            checkIns: checkIns,
-            breathingLogs: breathingLogs,
+    ) async -> [Insight] {
+        // Map Core Data objects to Sendable structs to safely pass across actor boundaries
+        let checkInData = checkIns.map { CheckInData(from: $0) } // This now includes sessionNote
+        let breathingData = breathingLogs.map { BreathingData(from: $0) }
+
+        // Generate base insights from InsightEngine
+        var insights = await InsightEngine.shared.generateInsights(
+            checkIns: checkInData,
+            breathingLogs: breathingData,
             journalEntries: journalEntries,
             goals: goals,
             forLastDays: days,
             referenceDate: referenceDate
         )
+        // Apply personalization
+        insights = filterInsightsByComplexity(insights)
+        insights = insights.map { adaptInsightForProfile($0) }
         
-        // Apply personalization filters and adaptations
-        insights = insights.map { personalization.adaptInsightForProfile($0) }
-        insights = personalization.filterInsightsByComplexity(insights)
-        
-        // Rank insights by user preferences
-        insights = insights.sorted { insight1, insight2 in
-            let score1 = personalization.getPreferenceScore(for: insight1.type)
-            let score2 = personalization.getPreferenceScore(for: insight2.type)
+        // Sort by priority and engagement
+        insights.sort { lhs, rhs in
+            let lhsEngagement = userPreferences[lhs.type]?.engagementScore ?? 0.5
+            let rhsEngagement = userPreferences[rhs.type]?.engagementScore ?? 0.5
             
-            if score1 != score2 {
-                return score1 > score2
+            if lhs.priority != rhs.priority {
+                return lhs.priority > rhs.priority
             }
-            return insight1.priority > insight2.priority
-        }
-        
-        // Evaluate contextual triggers
-        if let latestCheckIn = checkIns.last {
-            let triggers = personalization.evaluateContextualTriggers(for: latestCheckIn)
-            
-            // Convert triggers to insights
-            let triggerInsights = triggers.map { trigger in
-                Insight(
-                    message: trigger.message,
-                    type: .alert,
-                    priority: trigger.priority,
-                    confidence: 1.0
-                )
-            }
-            
-            // Mark triggers as used
-            triggers.forEach { personalization.markTriggerUsed($0) }
-            
-            // Add trigger insights to the beginning
-            insights = triggerInsights + insights
+            return lhsEngagement > rhsEngagement
         }
         
         return insights
+    }
+    
+    // MARK: - Main Actor Access Properties
+    
+    func getCurrentInsightComplexity() async -> InsightComplexity {
+        return insightComplexity
+    }
+    
+    func getCurrentUserRole() async -> WorkRole {
+        return userRole
+    }
+    
+    func getCurrentUserIndustry() async -> WorkIndustry {
+        return userIndustry
     }
 }

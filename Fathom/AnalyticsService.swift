@@ -18,6 +18,20 @@ class AnalyticsService {
     
     private init() {}
     
+    // MARK: - General Event Logging
+    
+    func logEvent(_ eventName: String, parameters: [String: Any]? = nil) {
+        #if canImport(FirebaseAnalytics)
+        Analytics.logEvent(eventName, parameters: parameters)
+        #else
+        // Fallback logging when Firebase is not available
+        print("Analytics Event: \(eventName)")
+        if let params = parameters {
+            print("Parameters: \(params)")
+        }
+        #endif
+    }
+    
     // MARK: - Paywall Events
     
     func trackPaywallImpression(source: String, version: String = "enhanced_v2", isProUser: Bool, productsCount: Int) {

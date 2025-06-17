@@ -208,8 +208,13 @@ struct PaywallView_Workplace: View {
                 .padding(.horizontal)
             
             if subscriptionManager.availableProducts.isEmpty {
-                ProgressView("Loading subscription options...")
-                    .padding()
+                VStack(spacing: 8) {
+                    ProgressView()
+                    Text("Loading subscription options...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
             } else {
                 VStack(spacing: 12) {
                     ForEach(0..<subscriptionManager.availableProducts.count, id: \.self) { index in

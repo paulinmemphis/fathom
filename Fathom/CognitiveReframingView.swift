@@ -37,7 +37,7 @@ struct CognitiveReframingView: View {
             } else {
                 TextEditor(text: .constant("")) // Placeholder for evidence gathering
                     .frame(height: 150)
-                    .border(Color(.separator), width: 1)
+                    .border(Color.gray.opacity(0.3), width: 1)
                     .cornerRadius(8)
             }
 
@@ -61,6 +61,8 @@ struct CognitiveReframingView: View {
         }
         .padding()
         .navigationTitle("Reframing Tool")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }

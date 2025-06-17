@@ -53,10 +53,14 @@ struct InsightsView: View {
 
     private let analytics = AnalyticsService.shared
 
+    @State private var userRole: WorkRole = .developer
+    @State private var userIndustry: WorkIndustry = .technology
+    @State private var currentComplexity: InsightComplexity = .intermediate
+
     var body: some View {
         NavigationView {
-            Group {
-                if subscriptionManager.isPro {
+            LazyVStack(alignment: .leading, spacing: 16) {
+                if subscriptionManager.isProUser {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             // Header with personalization button
@@ -66,7 +70,7 @@ struct InsightsView: View {
                                         .font(.largeTitle)
                                         .fontWeight(.bold)
                                     
-                                    Text("Personalized for \(personalizationEngine.userRole.rawValue) in \(personalizationEngine.userIndustry.rawValue)")
+                                    Text("Personalized for \(userRole.rawValue) in \(userIndustry.rawValue)")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
@@ -84,7 +88,7 @@ struct InsightsView: View {
                             .padding(.horizontal)
                             
                             // Insights complexity indicator
-                            PersonalizationStatusView(complexity: personalizationEngine.insightComplexity)
+                            PersonalizationStatusView(complexity: currentComplexity)
                                 .padding(.horizontal)
                             
                             if insights.isEmpty {
@@ -141,6 +145,11 @@ struct InsightsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 loadPersonalizedInsights()
+                Task {
+                    userRole = await personalizationEngine.getCurrentUserRole()
+                    userIndustry = await personalizationEngine.getCurrentUserIndustry()
+                    currentComplexity = await personalizationEngine.getCurrentInsightComplexity()
+                }
             }
             .refreshable {
                 loadPersonalizedInsights()
@@ -161,7 +170,8 @@ struct InsightsView: View {
             let journalEntries = journalStore.entries
             let goals = goalsManager.goals
             
-            let personalizedInsights = insightEngine.generatePersonalizedInsights(
+            // Generate insights using PersonalizationEngine
+            let insights = await personalizationEngine.generatePersonalizedInsights(
                 checkIns: checkInsArray,
                 breathingLogs: breathingArray,
                 journalEntries: journalEntries,
@@ -170,28 +180,29 @@ struct InsightsView: View {
             )
             
             await MainActor.run {
-                self.insights = personalizedInsights
+                // Filter out any insights that were previously dismissed
+                let filteredInsights = insights.filter { insight in
+                    !(interactionHistory[insight.id]?.dismissed ?? false)
+                }
+                self.insights = filteredInsights
             }
         }
     }
     
     private func handleInsightInteraction(_ insight: Insight, dismissed: Bool, actionTaken: Bool) {
         // Track interaction for personalization
-        personalizationEngine.recordInteraction(
-            insightType: insight.type,
-            dismissed: dismissed,
-            actionTaken: actionTaken
-        )
+        Task {
+            await personalizationEngine.recordInteraction(for: insight.type, action: dismissed ? .dismissed : actionTaken ? .actionTaken : .viewed)
+        }
         
         // Store interaction history
         interactionHistory[insight.id] = (dismissed: dismissed, actionTaken: actionTaken)
         
         // Log analytics
-        analytics.logInsightInteraction(
-            insightType: insight.type.rawValue,
-            dismissed: dismissed,
-            actionTaken: actionTaken
-        )
+        AnalyticsService.shared.logEvent("insight_interaction", parameters: [
+            "insight_message": insight.message,
+            "action": dismissed ? "dismissed" : actionTaken ? "action_taken" : "viewed"
+        ])
         
         // Remove insight from display if dismissed
         if dismissed {
@@ -235,6 +246,12 @@ struct InsightCardView: View {
         case .alert: return "exclamationmark.triangle.fill"
         case .prediction: return "crystal.ball.fill"
         case .anomaly: return "waveform.path.ecg"
+        case .warning: return "exclamationmark.triangle"
+        case .celebration: return "party.popper"
+        case .trend: return "chart.line.uptrend.xyaxis"
+        case .correlation: return "link"
+        case .goalProgress: return "target"
+        case .workplaceSpecific: return "building.2"
         }
     }
 
@@ -247,6 +264,12 @@ struct InsightCardView: View {
         case .alert: return .red
         case .prediction: return .indigo
         case .anomaly: return .pink
+        case .warning: return .red
+        case .celebration: return .green
+        case .trend: return .blue
+        case .correlation: return .purple
+        case .goalProgress: return .orange
+        case .workplaceSpecific: return .blue
         }
     }
 }
@@ -273,7 +296,7 @@ struct PersonalizationStatusView: View {
             HStack(spacing: 4) {
                 ForEach(1...4, id: \.self) { level in
                     Circle()
-                        .fill(level <= complexity.rawValue ? Color.blue : Color(.systemGray5))
+                        .fill(level <= complexity.intValue ? Color.blue : Color(.systemGray5))
                         .frame(width: 8, height: 8)
                 }
             }
@@ -330,7 +353,7 @@ struct PersonalizedInsightCard: View {
                 .buttonStyle(.bordered)
                 .foregroundColor(.secondary)
                 
-                if insight.type == .recommendation || insight.type == .alert {
+                if insight.type == .suggestion || insight.type == .alert {
                     Button("Take Action") {
                         onAction()
                     }
@@ -361,14 +384,14 @@ struct PersonalizedInsightCard: View {
     }
     
     private var insightTypeIcon: some View {
-        Group {
+        VStack {
             switch insight.type {
             case .observation:
                 Image(systemName: "eye.fill")
                     .foregroundColor(.blue)
-            case .recommendation:
+            case .suggestion:
                 Image(systemName: "lightbulb.fill")
-                    .foregroundColor(.yellow)
+                    .foregroundColor(.orange)
             case .alert:
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
@@ -381,6 +404,24 @@ struct PersonalizedInsightCard: View {
             case .anomaly:
                 Image(systemName: "questionmark.diamond.fill")
                     .foregroundColor(.red)
+            case .warning:
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundColor(.red)
+            case .celebration:
+                Image(systemName: "party.popper")
+                    .foregroundColor(.green)
+            case .trend:
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundColor(.blue)
+            case .correlation:
+                Image(systemName: "link")
+                    .foregroundColor(.purple)
+            case .goalProgress:
+                Image(systemName: "target")
+                    .foregroundColor(.orange)
+            case .workplaceSpecific:
+                Image(systemName: "building.2")
+                    .foregroundColor(.blue)
             default:
                 Image(systemName: "info.circle.fill")
                     .foregroundColor(.gray)

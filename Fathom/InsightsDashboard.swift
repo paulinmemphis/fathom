@@ -68,6 +68,9 @@ struct StressFocusChart: View {
                     )
                     .foregroundStyle(by: .value("Metric", "Stress"))
                 }
+            }
+            
+            ForEach(entries) { entry in
                 if let focus = entry.focusScore {
                     LineMark(
                         x: .value("Date", entry.date, unit: .day),

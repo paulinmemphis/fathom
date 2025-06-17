@@ -1,5 +1,9 @@
 import SwiftUI
 import CoreData
+import UIKit
+
+// Import the main module to access WorkplaceCheckIn
+
 
 struct WorkSessionReflectionView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -106,12 +110,31 @@ struct WorkSessionReflectionView_Previews: PreviewProvider {
     static var previews: some View {
         // Create a mock context
         let context = PersistenceController.preview.container.viewContext
+        
         // Create a mock WorkplaceCheckIn
         let mockCheckIn = WorkplaceCheckIn(context: context)
         mockCheckIn.checkInTime = Date()
-        // You might want to create a mock Workplace and assign it too for completeness
-
+        mockCheckIn.focusRating = 3
+        mockCheckIn.stressRating = 2
+        
+        // Save the context
+        try? context.save()
+        
         return WorkSessionReflectionView(checkIn: mockCheckIn)
             .environment(\.managedObjectContext, context)
     }
+    
+    // Create a test container
+    static let testContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "Fathom")
+        let description = NSPersistentStoreDescription()
+        description.type = NSInMemoryStoreType
+        container.persistentStoreDescriptions = [description]
+        container.loadPersistentStores { description, error in
+            if let error = error {
+                fatalError("Failed to load test store: \(error)")
+            }
+        }
+        return container
+    }()
 }

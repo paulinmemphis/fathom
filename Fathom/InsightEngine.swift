@@ -31,6 +31,12 @@ enum InsightType: String, CaseIterable, Codable {
     case alert = "Alert" // For more critical patterns
     case prediction = "Prediction" // For forecasting insights
     case anomaly = "Anomaly" // For unusual pattern detection
+    case warning = "Warning"
+    case celebration = "Celebration"
+    case trend = "Trend"
+    case correlation = "Correlation"
+    case goalProgress = "Goal Progress"
+    case workplaceSpecific = "Workplace Specific"
 }
 
 // MARK: - Phase 2 Algorithmic Data Structures
@@ -100,6 +106,8 @@ struct ConfidenceMetrics {
 
 @MainActor
 class InsightEngine {
+    
+    static let shared = InsightEngine()
 
     // MARK: - Phase 2: Adaptive Thresholds
     private var adaptiveThresholds: [String: AdaptiveThreshold] = [
@@ -153,7 +161,7 @@ class InsightEngine {
         return messages.randomElement() ?? messages.first ?? ""
     }
 
-    func generateInsights(checkIns: [WorkplaceCheckIn], breathingLogs: [BreathingExercise] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoal] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [Insight] {
+    func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoal] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [Insight] {
         var generatedInsights: [Insight] = []
 
         // MARK: - Phase 2: Update Adaptive Thresholds
@@ -168,14 +176,12 @@ class InsightEngine {
 
         // Filter check-ins to current period
         let currentPeriodCheckIns = checkIns.filter { checkIn in
-            guard let checkInTime = checkIn.checkInTime else { return false }
-            return checkInTime >= currentPeriodStartDate && checkInTime <= currentPeriodEndDate
+            return checkIn.timestamp >= currentPeriodStartDate && checkIn.timestamp <= currentPeriodEndDate
         }
 
         // Filter breathing logs to current period
         let currentPeriodBreathingLogs = breathingLogs.filter { log in
-            guard let completedAt = log.completedAt else { return false }
-            return completedAt >= currentPeriodStartDate && completedAt <= currentPeriodEndDate
+            return log.timestamp >= currentPeriodStartDate && log.timestamp <= currentPeriodEndDate
         }
 
         // Filter journal entries to current period
@@ -186,10 +192,7 @@ class InsightEngine {
         // MARK: - Phase 2: Enhanced Analytics with Confidence and Anomaly Detection
         
         // Analyze work patterns with confidence scoring
-        let workHours = currentPeriodCheckIns.compactMap { checkIn -> Double? in
-            guard let start = checkIn.checkInTime, let end = checkIn.checkOutTime else { return nil }
-            return end.timeIntervalSince(start) / 3600
-        }
+        let workHours = currentPeriodCheckIns.map { Double($0.sessionDuration) / 3600.0 }
         
         if !workHours.isEmpty {
             // Detect anomalies in work hours
@@ -223,8 +226,8 @@ class InsightEngine {
         }
 
         // MARK: - Enhanced Stress/Focus Analysis with Adaptive Thresholds
-        let stressRatings = currentPeriodCheckIns.compactMap { $0.stressRating }.map { Double($0) }
-        let focusRatings = currentPeriodCheckIns.compactMap { $0.focusRating }.map { Double($0) }
+        let stressRatings = currentPeriodCheckIns.map { $0.stressLevel }
+        let focusRatings = currentPeriodCheckIns.map { $0.focusLevel }
         
         if !stressRatings.isEmpty {
             let adaptiveStressThreshold = adaptiveThresholds["highStress"]?.currentValue ?? 4.0
@@ -277,8 +280,8 @@ class InsightEngine {
         }
 
         // Filter data for the relevant periods
-        let previousPeriodBreathingLogs = breathingLogs.filter { $0.completedAt ?? Date.distantPast >= previousPeriodStartDate && $0.completedAt ?? Date.distantFuture < previousPeriodEndDate }
-        let historicalCheckInsForAverage = checkIns.filter { ($0.checkInTime ?? Date.distantPast >= historicalAverageStartDate && $0.checkInTime ?? Date.distantFuture < historicalAverageEndDate) && $0.checkOutTime != nil }
+        let previousPeriodBreathingLogs = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
+        let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
 
         // Analyze sentiment for both journal entries and session notes
         var sentimentInsights: [Insight] = []
@@ -309,7 +312,7 @@ class InsightEngine {
         
         // Generate insights based on session note sentiment patterns
         if positiveSessions > negativeSessions && positiveSessions >= 2 {
-            sentimentInsights.append(Insight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .observation, priority: 2))
+            sentimentInsights.append(Insight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
         } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
             sentimentInsights.append(Insight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
         }
@@ -320,15 +323,13 @@ class InsightEngine {
         
         // --- Insight Rule 1: Total Work Hours & Breathing Balance (Enhanced with Adaptive Thresholds) ---
         let totalWorkHoursThisPeriod = currentPeriodCheckIns.reduce(0.0) { total, checkIn in
-            guard let start = checkIn.checkInTime, let end = checkIn.checkOutTime else { return total }
-            return total + end.timeIntervalSince(start) / 3600 // hours
+            return total + (Double(checkIn.sessionDuration) / 3600.0)
         }
         let numberOfBreathingSessionsThisPeriod = currentPeriodBreathingLogs.count
 
         // Calculate historical average weekly work hours
         let totalHistoricalWorkHours = historicalCheckInsForAverage.reduce(0.0) { total, checkIn in
-            guard let start = checkIn.checkInTime, let end = checkIn.checkOutTime else { return total }
-            return total + end.timeIntervalSince(start) / 3600
+            return total + (Double(checkIn.sessionDuration) / 3600.0)
         }
         let averageWeeklyWorkHoursHistorical = historicalWeeksForAverage > 0 ? totalHistoricalWorkHours / Double(historicalWeeksForAverage) : 0.0
         let workHoursThisPeriodFormatted = String(format: "%.1f", totalWorkHoursThisPeriod)
@@ -365,48 +366,186 @@ class InsightEngine {
 
         // Continue with remaining rules...
         generatedInsights.append(contentsOf: generateRemainingInsightRules(
-            currentPeriodCheckIns: currentPeriodCheckIns,
-            currentPeriodBreathingLogs: currentPeriodBreathingLogs,
-            previousPeriodBreathingLogs: previousPeriodBreathingLogs,
-            totalWorkHoursThisPeriod: totalWorkHoursThisPeriod,
-            averageWeeklyWorkHoursHistorical: averageWeeklyWorkHoursHistorical,
-            days: days,
-            calendar: calendar
-        ))
+    }
 
-        // Generate goal insights
-        generatedInsights.append(contentsOf: generateGoalInsights(goals: goals, currentPeriodCheckIns: currentPeriodCheckIns, currentPeriodBreathingLogs: currentPeriodBreathingLogs, days: days))
+    // Filter breathing logs to current period
+    let currentPeriodBreathingLogs = breathingLogs.filter { log in
+        return log.timestamp >= currentPeriodStartDate && log.timestamp <= currentPeriodEndDate
+    }
 
-        // Generate workplace-specific insights
-        generatedInsights.append(contentsOf: generateWorkplaceSpecificInsights(checkIns: currentPeriodCheckIns))
+    // Filter journal entries to current period
+    let currentPeriodJournalEntries = journalEntries.compactMap { entry -> WorkplaceJournalEntry? in
+        return entry.date >= currentPeriodStartDate && entry.date < referenceDate ? entry : nil
+    }
 
+    // MARK: - Phase 2: Enhanced Analytics with Confidence and Anomaly Detection
+    
+    // Analyze work patterns with confidence scoring
+    let workHours = currentPeriodCheckIns.map { Double($0.sessionDuration) / 3600.0 }
+    
+    if !workHours.isEmpty {
+        // Detect anomalies in work hours
+        let anomalies = detectAnomalies(values: workHours)
+        let variance = workHours.map { pow($0 - workHours.reduce(0, +) / Double(workHours.count), 2) }.reduce(0, +) / Double(workHours.count - 1)
+        let confidence = calculateConfidence(sampleSize: workHours.count, variance: variance)
+        
+        // Generate predictive insights
+        if let prediction = predictTrend(values: workHours) {
+            var insight = Insight(
+                message: "📈 Predicted work pattern: Your work hours trend is \(prediction.trendDirection == .increasing ? "increasing" : prediction.trendDirection == .decreasing ? "decreasing" : "stable"). Expected average for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue)) hours.",
+                type: .prediction,
+                priority: 2
+            )
+            insight.confidence = confidence.getConfidenceScore()
+            insight.prediction = prediction
+            generatedInsights.append(insight)
+        }
+        
+        // Flag anomalous sessions
+        for (index, isAnomaly) in anomalies.enumerated() where isAnomaly {
+            var insight = Insight(
+                message: "⚠️ Unusual work session detected: \(String(format: "%.1f", workHours[index])) hours - significantly different from your typical pattern.",
+                type: .anomaly,
+                priority: 3
+            )
+            insight.confidence = confidence.getConfidenceScore()
+            insight.isAnomaly = true
+            generatedInsights.append(insight)
+        }
+    }
+
+    // MARK: - Enhanced Stress/Focus Analysis with Adaptive Thresholds
+    let stressRatings = currentPeriodCheckIns.map { $0.stressLevel }
+    let focusRatings = currentPeriodCheckIns.map { $0.focusLevel }
+    
+    if !stressRatings.isEmpty {
+        let adaptiveStressThreshold = adaptiveThresholds["highStress"]?.currentValue ?? 4.0
+        let highStressCount = stressRatings.filter { $0 >= adaptiveStressThreshold }.count
+        let variance = stressRatings.map { pow($0 - stressRatings.reduce(0, +) / Double(stressRatings.count), 2) }.reduce(0, +) / Double(stressRatings.count - 1)
+        let confidence = calculateConfidence(sampleSize: stressRatings.count, variance: variance)
+        
+        if highStressCount > stressRatings.count / 2 {
+            var insight = Insight(
+                message: "🔍 Adaptive Analysis: Your stress threshold has been personalized to \(String(format: "%.1f", adaptiveStressThreshold)). Recent pattern shows elevated stress in \(highStressCount)/\(stressRatings.count) sessions.",
+                type: .observation,
+                priority: 2
+            )
+            insight.confidence = confidence.getConfidenceScore()
+            generatedInsights.append(insight)
+        }
+    }
+    
+    if !focusRatings.isEmpty {
+        let adaptiveFocusThreshold = adaptiveThresholds["lowFocus"]?.currentValue ?? 2.0
+        let lowFocusCount = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
+        let variance = focusRatings.map { pow($0 - focusRatings.reduce(0, +) / Double(focusRatings.count), 2) }.reduce(0, +) / Double(focusRatings.count - 1)
+        let confidence = calculateConfidence(sampleSize: focusRatings.count, variance: variance)
+        
+        if let prediction = predictTrend(values: focusRatings) {
+            var insight = Insight(
+                message: "🎯 Focus Forecast: Your focus trend is \(prediction.trendDirection == .increasing ? "improving" : prediction.trendDirection == .decreasing ? "declining" : "stable"). Predicted focus level for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue))/5.",
+                type: .prediction,
+                priority: 2
+            )
+            insight.confidence = confidence.getConfidenceScore()
+            insight.prediction = prediction
+            generatedInsights.append(insight)
+        }
+    }
+
+    // MARK: - Phase 2: Enhanced Insight Generation with Original Logic
+    
+    // Previous period (e.g., days 8-14 ago for trend comparison)
+    guard let previousPeriodEndDate = calendar.date(byAdding: .day, value: -1, to: currentPeriodStartDate),
+          let previousPeriodStartDate = calendar.date(byAdding: .day, value: -days, to: previousPeriodEndDate) else {
         return generatedInsights
     }
 
-    private func generateRemainingInsightRules(
-        currentPeriodCheckIns: [WorkplaceCheckIn],
-        currentPeriodBreathingLogs: [BreathingExercise],
-        previousPeriodBreathingLogs: [BreathingExercise],
-        totalWorkHoursThisPeriod: Double,
-        averageWeeklyWorkHoursHistorical: Double,
-        days: Int,
-        calendar: Calendar
-    ) -> [Insight] {
-        var insights: [Insight] = []
-        
-        // --- Insight Rule 2: Consistency of Breathing Exercises ---
-        let minWorkHoursForNoBreathingInsight = averageWeeklyWorkHoursHistorical > 0 ? averageWeeklyWorkHoursHistorical * 0.20 : 5.0
-        let numberOfBreathingSessionsThisPeriod = currentPeriodBreathingLogs.count
-        
-        if totalWorkHoursThisPeriod > minWorkHoursForNoBreathingInsight && numberOfBreathingSessionsThisPeriod == 0 {
-            var insight = Insight(message: "Noticing you've been working but haven't logged any breathing exercises recently. Even a brief mindful pause can make a difference. Consider exploring one in the 'Breathe' tab.", type: .suggestion, priority: 3)
-            insight.confidence = 0.7
-            insights.append(insight)
-        } else if numberOfBreathingSessionsThisPeriod >= days / 2 && numberOfBreathingSessionsThisPeriod > 2 {
-            var insight = Insight(message: "Consistent effort! You've used mindful breathing \(numberOfBreathingSessionsThisPeriod) times in the last \(days) days. Keep up the great practice for managing stress and enhancing focus.", type: .affirmation, priority: 4)
-            insight.confidence = 0.8
-            insights.append(insight)
+    // Historical period for calculating averages (e.g., last 4 weeks, excluding current week)
+    let historicalWeeksForAverage = 4
+    guard let historicalAverageEndDate = calendar.date(byAdding: .day, value: -1, to: currentPeriodStartDate),
+          let historicalAverageStartDate = calendar.date(byAdding: .day, value: -(days * historicalWeeksForAverage), to: historicalAverageEndDate) else {
+        return generatedInsights
+    }
+
+    // Filter data for the relevant periods
+    let previousPeriodBreathingLogs = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
+    let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
+
+    // Analyze sentiment for both journal entries and session notes
+    var sentimentInsights: [Insight] = []
+    
+    // Journal entries sentiment analysis
+    for entry in currentPeriodJournalEntries {
+        let sentiment = sentimentAnalysis(for: entry.text)
+        if sentiment > 0.3 {
+            sentimentInsights.append(Insight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
+        } else if sentiment < -0.3 {
+            sentimentInsights.append(Insight(message: "Your journal entry '\(entry.title)' reflects some challenges. Would you like to explore what's been difficult?", type: .question, priority: 3))
         }
+    }
+    
+    // Session notes sentiment analysis
+    let checkInsWithNotes = currentPeriodCheckIns.filter { $0.sessionNote != nil && !$0.sessionNote!.isEmpty }
+    var positiveSessions = 0
+    var negativeSessions = 0
+    
+    for checkIn in checkInsWithNotes {
+        let sentiment = sentimentAnalysis(for: checkIn.sessionNote!)
+        if sentiment > 0.3 {
+            positiveSessions += 1
+        } else if sentiment < -0.3 {
+            negativeSessions += 1
+        }
+    }
+    
+    // Generate insights based on session note sentiment patterns
+    if positiveSessions > negativeSessions && positiveSessions >= 2 {
+        sentimentInsights.append(Insight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
+    } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
+        sentimentInsights.append(Insight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
+    }
+
+    generatedInsights.append(contentsOf: sentimentInsights)
+
+    // MARK: - Enhanced Original Rules with Adaptive Thresholds
+    
+    // --- Insight Rule 1: Total Work Hours & Breathing Balance (Enhanced with Adaptive Thresholds) ---
+    let totalWorkHoursThisPeriod = currentPeriodCheckIns.reduce(0.0) { total, checkIn in
+        return total + (Double(checkIn.sessionDuration) / 3600.0)
+    }
+    let numberOfBreathingSessionsThisPeriod = currentPeriodBreathingLogs.count
+
+    // Calculate historical average weekly work hours
+    let totalHistoricalWorkHours = historicalCheckInsForAverage.reduce(0.0) { total, checkIn in
+        return total + (Double(checkIn.sessionDuration) / 3600.0)
+    }
+    let averageWeeklyWorkHoursHistorical = historicalWeeksForAverage > 0 ? totalHistoricalWorkHours / Double(historicalWeeksForAverage) : 0.0
+    let workHoursThisPeriodFormatted = String(format: "%.1f", totalWorkHoursThisPeriod)
+
+    // Use adaptive threshold for max weekly hours
+    let adaptiveMaxWeeklyHours = adaptiveThresholds["maxWeeklyHours"]?.currentValue ?? maxWeeklyHoursThreshold
+
+    if totalWorkHoursThisPeriod > 0 {
+        // Compare to historical average if available, otherwise use adaptive threshold
+        let significantlyAboveAverage = averageWeeklyWorkHoursHistorical > 0 && totalWorkHoursThisPeriod > averageWeeklyWorkHoursHistorical * 1.2 // 20% above average
+        let significantlyBelowAverage = averageWeeklyWorkHoursHistorical > 0 && totalWorkHoursThisPeriod < averageWeeklyWorkHoursHistorical * 0.8 // 20% below average
+
+        if significantlyAboveAverage || (averageWeeklyWorkHoursHistorical == 0 && totalWorkHoursThisPeriod > adaptiveMaxWeeklyHours) {
+            // Condition for high workload
+            if numberOfBreathingSessionsThisPeriod < minBreathingSessionsForHighWorkload {
+                var insight = Insight(message: "You've logged \(workHoursThisPeriodFormatted) hours in the last \(days) days, which is more than usual for you. We also noticed only \(numberOfBreathingSessionsThisPeriod) breathing session(s). Mindful breaks are key during intense periods. Consider one?", type: .suggestion, priority: 10)
+                insight.confidence = currentPeriodCheckIns.count >= 3 ? 0.8 : 0.5
+                generatedInsights.append(insight)
+            } else {
+                var insight = Insight(message: "You've worked \(workHoursThisPeriodFormatted) hours in the last \(days) days—a significant amount. It's good to see you've included \(numberOfBreathingSessionsThisPeriod) breathing exercises. How is this balance feeling?", type: .question, priority: 5)
+                insight.confidence = currentPeriodCheckIns.count >= 3 ? 0.8 : 0.5
+                generatedInsights.append(insight)
+            }
+        } else if significantlyBelowAverage {
+            var insight = Insight(message: "Your work hours this past period (\(workHoursThisPeriodFormatted) hrs) were lower than your recent average. You also completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this change in pace affect you?", type: .question, priority: 2)
+            insight.confidence = 0.7
+            generatedInsights.append(insight)
 
         // --- Insight Rule 3: Reflections on Focus & Stress (Enhanced with Adaptive Thresholds) ---
         let checkInsWithReflections = currentPeriodCheckIns.filter { checkIn in
@@ -451,145 +590,6 @@ class InsightEngine {
         if let sentimentScore = sentiment {
             // Convert string sentiment score to Double
             return Double(sentimentScore.rawValue) ?? 0.0
-        }
-        
-        return 0.0 // Neutral sentiment if unable to analyze
-    }
-
-    private func generateGoalInsights(goals: [UserGoal], currentPeriodCheckIns: [WorkplaceCheckIn], currentPeriodBreathingLogs: [BreathingExercise], days: Int) -> [Insight] {
-        var insights: [Insight] = []
-        
-        for goal in goals {
-            let progress = calculateGoalProgress(goal: goal, checkIns: currentPeriodCheckIns, breathingLogs: currentPeriodBreathingLogs, days: days)
-            
-            if progress >= 1.0 {
-                insights.append(Insight(message: "🎉 Goal achieved! You've completed your '\(goal.title)' goal. Great work!", type: .affirmation, priority: 1))
-            } else if progress >= 0.8 {
-                insights.append(Insight(message: "🎯 You're \(Int(progress * 100))% of the way to your '\(goal.title)' goal. Almost there!", type: .affirmation, priority: 2))
-            } else if progress >= 0.5 {
-                insights.append(Insight(message: "📈 Good progress on your '\(goal.title)' goal (\(Int(progress * 100))% complete). Keep it up!", type: .affirmation, priority: 3))
-            } else if progress < 0.3 && days >= 3 {
-                insights.append(Insight(message: "🤔 Your '\(goal.title)' goal could use some attention. What would help you make progress?", type: .question, priority: 4))
-            }
-        }
-        
-        return insights
-    }
-
-    private func calculateGoalProgress(goal: UserGoal, checkIns: [WorkplaceCheckIn], breathingLogs: [BreathingExercise], days: Int) -> Double {
-        switch goal.type {
-        case .dailyWorkHours:
-            let totalHours = checkIns.reduce(0.0) { total, checkIn in
-                guard let start = checkIn.checkInTime, let end = checkIn.checkOutTime else { return total }
-                return total + end.timeIntervalSince(start) / 3600
-            }
-            return min(1.0, totalHours / goal.targetValue)
-            
-        case .weeklyBreathingMinutes:
-            let sessionCount = Double(breathingLogs.count)
-            return min(1.0, sessionCount / goal.targetValue)
-            
-        case .weeklyStressReduction:
-            let stressRatings = checkIns.compactMap { $0.stressRating > 0 ? Double($0.stressRating) : nil }
-            if stressRatings.isEmpty { return 0.0 }
-            let averageStress = stressRatings.reduce(0, +) / Double(stressRatings.count)
-            let targetStress = goal.targetValue
-            return max(0.0, min(1.0, (5.0 - averageStress) / (5.0 - targetStress)))
-            
-        case .dailyFocusScore:
-            let focusRatings = checkIns.compactMap { $0.focusRating > 0 ? Double($0.focusRating) : nil }
-            if focusRatings.isEmpty { return 0.0 }
-            let averageFocus = focusRatings.reduce(0, +) / Double(focusRatings.count)
-            return min(1.0, averageFocus / goal.targetValue)
-            
-        case .reflectionFrequency:
-            let reflectionCount = Double(checkIns.filter { $0.focusRating > 0 || $0.stressRating > 0 }.count)
-            return min(1.0, reflectionCount / goal.targetValue)
-        }
-    }
-
-    private func generateWorkplaceSpecificInsights(checkIns: [WorkplaceCheckIn]) -> [Insight] {
-        var insights: [Insight] = []
-        
-        // Group check-ins by workplace
-        let groupedByWorkplace = Dictionary(grouping: checkIns) { $0.workplace?.name ?? "Unknown" }
-        
-        // Only generate insights if there are multiple workplaces
-        guard groupedByWorkplace.keys.count > 1 else { return insights }
-        
-        var workplaceMetrics: [(name: String, avgStress: Double, avgFocus: Double, totalHours: Double)] = []
-        
-        for (workplaceName, workplaceCheckIns) in groupedByWorkplace {
-            let stressRatings = workplaceCheckIns.compactMap { $0.stressRating > 0 ? Double($0.stressRating) : nil }
-            let focusRatings = workplaceCheckIns.compactMap { $0.focusRating > 0 ? Double($0.focusRating) : nil }
-            
-            let avgStress = stressRatings.isEmpty ? 0.0 : stressRatings.reduce(0, +) / Double(stressRatings.count)
-            let avgFocus = focusRatings.isEmpty ? 0.0 : focusRatings.reduce(0, +) / Double(focusRatings.count)
-            
-            let totalHours = workplaceCheckIns.reduce(0.0) { total, checkIn in
-                guard let start = checkIn.checkInTime, let end = checkIn.checkOutTime else { return total }
-                return total + end.timeIntervalSince(start) / 3600
-            }
-            
-            workplaceMetrics.append((name: workplaceName, avgStress: avgStress, avgFocus: avgFocus, totalHours: totalHours))
-        }
-        
-        // Find workplace with best focus
-        if let bestFocusWorkplace = workplaceMetrics.max(by: { $0.avgFocus < $1.avgFocus }),
-           bestFocusWorkplace.avgFocus > 0 {
-            insights.append(Insight(message: "🎯 Your focus tends to be highest at \(bestFocusWorkplace.name) (avg: \(String(format: "%.1f", bestFocusWorkplace.avgFocus))/5). What makes this environment work well for you?", type: .question, priority: 5))
-        }
-        
-        // Find workplace with lowest stress
-        if let lowestStressWorkplace = workplaceMetrics.min(by: { $0.avgStress < $1.avgStress }),
-           lowestStressWorkplace.avgStress > 0 {
-            insights.append(Insight(message: "😌 \(lowestStressWorkplace.name) seems to be your most relaxed work environment (avg stress: \(String(format: "%.1f", lowestStressWorkplace.avgStress))/5). Consider what factors contribute to this.", type: .observation, priority: 6))
-        }
-        
-        return insights
-    }
-
-    // MARK: - Phase 2: Adaptive Threshold Updates
-    
-    private func updateAdaptiveThresholds(checkIns: [WorkplaceCheckIn], breathingLogs: [BreathingExercise]) {
-        // Update max weekly hours threshold based on user's actual patterns
-        let recentCheckIns = checkIns.filter { checkIn in
-            guard let checkInTime = checkIn.checkInTime else { return false }
-            return checkInTime >= Calendar.current.date(byAdding: .day, value: -28, to: Date()) ?? Date.distantPast
-        }
-        
-        let weeklyHours = calculateWeeklyHours(from: recentCheckIns)
-        if !weeklyHours.isEmpty {
-            let averageWeeklyHours = weeklyHours.reduce(0, +) / Double(weeklyHours.count)
-            adaptiveThresholds["maxWeeklyHours"]?.adapt(newDataPoint: averageWeeklyHours)
-        }
-        
-        // Update stress threshold based on user's ratings
-        let stressRatings = recentCheckIns.compactMap { checkIn in
-            checkIn.stressRating > 0 ? Double(checkIn.stressRating) : nil
-        }
-        if !stressRatings.isEmpty {
-            let averageStress = stressRatings.reduce(0, +) / Double(stressRatings.count)
-            adaptiveThresholds["highStress"]?.adapt(newDataPoint: averageStress + 0.5) // Slightly above average
-        }
-        
-        // Update focus threshold based on user's ratings
-        let focusRatings = recentCheckIns.compactMap { checkIn in
-            checkIn.focusRating > 0 ? Double(checkIn.focusRating) : nil
-        }
-        if !focusRatings.isEmpty {
-            let averageFocus = focusRatings.reduce(0, +) / Double(focusRatings.count)
-            adaptiveThresholds["lowFocus"]?.adapt(newDataPoint: averageFocus - 0.5) // Slightly below average
-        }
-    }
-    
-    private func calculateWeeklyHours(from checkIns: [WorkplaceCheckIn]) -> [Double] {
-        let calendar = Calendar.current
-        var weeklyHours: [Double] = []
-        
-        // Group check-ins by week
-        let groupedByWeek = Dictionary(grouping: checkIns) { checkIn -> String in
-            guard let checkInTime = checkIn.checkInTime else { return "" }
             let weekOfYear = calendar.component(.weekOfYear, from: checkInTime)
             let year = calendar.component(.year, from: checkInTime)
             return "\(year)-\(weekOfYear)"

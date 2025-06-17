@@ -277,7 +277,7 @@ struct NotificationSettingsView: View {
         enableDailyInsights = defaults.bool(forKey: "enableDailyInsights")
         
         // Default to true if never set
-        if !defaults.object(forKey: "enableContextualNotifications") != nil {
+        if defaults.object(forKey: "enableContextualNotifications") == nil {
             enableContextualNotifications = true
             enableSmartNotifications = true
             enableReflectionReminders = true
@@ -318,6 +318,23 @@ struct TriggerRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
+    }
+}
+
+struct TipRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .frame(width: 20)
+            
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
     }
 }
 

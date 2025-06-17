@@ -20,6 +20,25 @@ extension WorkplaceCheckIn {
 
 // MARK: - Convenience Properties
 extension WorkplaceCheckIn {
+    /// Normalized stress level (0.0 - 1.0)
+    var stressLevel: Double {
+        Double(stressRating) / 5.0
+    }
+    /// Normalized focus level (0.0 - 1.0)
+    var focusLevel: Double {
+        Double(focusRating) / 5.0
+    }
+    /// Session duration in minutes
+    var sessionDuration: Int {
+        guard let checkIn = checkInTime else { return 0 }
+        let endTime = checkOutTime ?? Date()
+        return Int(endTime.timeIntervalSince(checkIn) / 60)
+    }
+    /// Timestamp for check-in (or fallback)
+    var timestamp: Date {
+        checkInTime ?? Date()
+    }
+
     var isActive: Bool {
         return checkInTime != nil && checkOutTime == nil
     }

@@ -13,6 +13,13 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
+            // MARK: - Today Tab (New Primary Tab)
+            TodayView()
+                .tabItem {
+                    Label("Today", systemImage: "house.fill")
+                }
+                .environmentObject(subscriptionManager)
+
             // MARK: - Workplaces Tab
             WorkplaceListView()
                 .tabItem {
@@ -20,29 +27,24 @@ struct ContentView: View {
                 }
                 .environmentObject(subscriptionManager)
 
-            // MARK: - Breathing Exercise Tab
-            BreathingExerciseView()
+            // MARK: - Wellness Tab (Combined Breathing & Tools)
+            WellnessView()
                 .tabItem {
-                    Label("Breathe", systemImage: "wind")
-                }
-
-            // MARK: - Insights Tab
-            InsightsView()
-                .tabItem {
-                    Label("Insights", systemImage: "brain.head.profile")
+                    Label("Wellness", systemImage: "heart.fill")
                 }
                 .environmentObject(subscriptionManager)
 
-            // MARK: - Achievements Tab
-            AchievementsView()
+            // MARK: - Progress Tab (Combined Insights & Achievements)
+            ProgressView()
                 .tabItem {
-                    Label("Achievements", systemImage: "star.circle.fill")
+                    Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
                 }
+                .environmentObject(subscriptionManager)
             
-            // MARK: - Settings Tab (Placeholder)
-            SettingsView()
+            // MARK: - Profile Tab (Settings & Subscription)
+            ProfileView()
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("Profile", systemImage: "person.circle.fill")
                 }
                 .environmentObject(subscriptionManager)
         }

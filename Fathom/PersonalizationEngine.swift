@@ -270,6 +270,28 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     
     // MARK: - Public Interface
     
+    func getCurrentUserRole() -> WorkRole {
+        return userRole
+    }
+    
+    func getCurrentUserIndustry() -> WorkIndustry {
+        return userIndustry
+    }
+    
+    func getCurrentInsightComplexity() -> InsightComplexity {
+        return insightComplexity
+    }
+    
+    func setUserProfile(role: WorkRole, industry: WorkIndustry) {
+        updateUserRole(role)
+        updateUserIndustry(industry)
+    }
+    
+    func setInsightComplexity(_ complexity: InsightComplexity) {
+        updateInsightComplexity(complexity)
+    }
+
+    
     func updateUserRole(_ role: WorkRole) {
         userRole = role
         userDefaults.set(role.rawValue, forKey: "userRole")
@@ -289,11 +311,22 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     
     // MARK: - Preference Learning
     
+    // Make saveUserPreferences public for the settings view
+    public func saveUserPreferences() {
+        do {
+            let data = try JSONEncoder().encode(userPreferences)
+            userDefaults.set(data, forKey: "userPreferences")
+        } catch {
+            print("Error saving user preferences: \(error)")
+        }
+    }
+
+    
     func recordInsightEngagement(_ type: InsightType, wasDismissed: Bool, actionTaken: Bool) {
         var preference = userPreferences[type] ?? UserPreference(insightType: type)
         preference.updateEngagement(dismissed: wasDismissed, actionTaken: actionTaken)
         userPreferences[type] = preference
-        saveUserPreferences()
+        _persistUserPreferencesDictionary()
     }
     
     func getEngagementScore(for type: InsightType) -> Double {
@@ -339,7 +372,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         }
         
         userPreferences[insightType] = preference
-        saveUserPreferences()
+        _persistUserPreferencesDictionary()
     }
     
     func getContextualTriggers() -> [ContextualTrigger] {
@@ -531,7 +564,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     
     // MARK: - Persistence
     
-    private func saveUserPreferences() {
+    private func _persistUserPreferencesDictionary() {
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(userPreferences)

@@ -342,6 +342,10 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         saveUserPreferences()
     }
     
+    func getContextualTriggers() -> [ContextualTrigger] {
+        return contextualTriggers
+    }
+    
     enum InteractionAction {
         case viewed
         case dismissed

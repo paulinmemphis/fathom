@@ -13,6 +13,9 @@ struct NotificationSettingsView: View {
     @State private var enableBreathingReminders = true
     @State private var enableDailyInsights = true
     
+    @State private var userRole: WorkRole = .other
+    @State private var contextualTriggers: [ContextualTrigger] = []
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -88,25 +91,25 @@ struct NotificationSettingsView: View {
                             Toggle("Smart Stress Alerts", isOn: $enableContextualNotifications)
                                 .disabled(!notificationManager.notificationPermissionGranted)
                             
-                            Text("Get notified when patterns indicate high stress or low focus, with personalized suggestions based on your role as a \(personalizationEngine.userRole.rawValue)")
+                            Text("Get notified when patterns indicate high stress or low focus, with personalized suggestions based on your role as a \(userRole.rawValue)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         
                         // Active triggers display
-                        if !personalizationEngine.contextualTriggers.isEmpty {
+                        if !contextualTriggers.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Active Triggers")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
                                 LazyVStack(spacing: 8) {
-                                    ForEach(Array(personalizationEngine.contextualTriggers.prefix(3)), id: \.id) { trigger in
+                                    ForEach(Array(contextualTriggers.prefix(3)), id: \.id) { trigger in
                                         TriggerRow(trigger: trigger)
                                     }
                                     
-                                    if personalizationEngine.contextualTriggers.count > 3 {
-                                        Text("+ \(personalizationEngine.contextualTriggers.count - 3) more triggers")
+                                    if contextualTriggers.count > 3 {
+                                        Text("+ \(contextualTriggers.count - 3) more triggers")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
@@ -140,11 +143,11 @@ struct NotificationSettingsView: View {
                         
                         if enableBreathingReminders {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Optimal Times for \(personalizationEngine.userRole.rawValue)")
+                                Text("Optimal Times for \(userRole.rawValue)")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                let breathingTimes = getOptimalBreathingTimesDisplay(for: personalizationEngine.userRole)
+                                let breathingTimes = getOptimalBreathingTimesDisplay(for: userRole)
                                 HStack(spacing: 12) {
                                     ForEach(breathingTimes, id: \.self) { time in
                                         Text(time)
@@ -221,6 +224,10 @@ struct NotificationSettingsView: View {
             }
             .onAppear {
                 loadNotificationSettings()
+                Task {
+                    self.userRole = await personalizationEngine.userRole
+                    self.contextualTriggers = await personalizationEngine.getContextualTriggers()
+                }
             }
             .onChange(of: enableSmartNotifications) { _, newValue in
                 if newValue && notificationManager.notificationPermissionGranted {

@@ -49,6 +49,7 @@ struct ToolsView: View {
                 }
             }
             .navigationTitle("Wellness Toolkit")
+            .navigationBarTitleDisplayMode(.automatic) // Added for iPadOS consistency
             .sheet(isPresented: $isShowingPaywall) {
                 PaywallView_Workplace() // A new paywall for these specific features
             }

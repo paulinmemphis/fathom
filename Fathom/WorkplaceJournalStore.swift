@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 /// Manages the collection of journal entries for the Fathom app.
 /// This class acts as the single source of truth for all journal data.
@@ -49,5 +50,10 @@ class WorkplaceJournalStore: ObservableObject {
     /// Adds a new journal entry to the store
     func addEntry(_ entry: WorkplaceJournalEntry) {
         entries.insert(entry, at: 0) // Insert at the beginning for newest first
+    }
+
+    /// Deletes a journal entry from the store at the specified offsets.
+    func deleteEntry(at offsets: IndexSet) {
+        entries.remove(atOffsets: offsets)
     }
 }

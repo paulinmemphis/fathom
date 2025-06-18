@@ -9,9 +9,29 @@
 import SwiftUI
 import Charts
 
+// MARK: - Chart Card View
+
+struct ChartCard<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+                .padding([.top, .leading])
+            
+            content
+                .padding([.horizontal, .bottom])
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+}
+
 /// A conceptual view demonstrating what an HR or team lead might see.
 /// IMPORTANT: This data is fully anonymized and aggregated. No individual data is ever shared.
-@available(iOS 16.0, *)
 struct CorporateDashboardView: View {
     // This data would be securely aggregated from the team's devices
     // using technologies like Differential Privacy to ensure anonymity.

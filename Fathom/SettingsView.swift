@@ -94,6 +94,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.automatic) // Added for iPadOS consistency
             .sheet(isPresented: $showingSubscriptionSheet) {
                 PaywallView_Workplace()
                     .environmentObject(subscriptionManager)

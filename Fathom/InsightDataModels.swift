@@ -14,7 +14,7 @@ struct CheckInData: Sendable {
         self.stressLevel = checkIn.stressLevel
         self.timestamp = checkIn.timestamp ?? Date()
         self.workplaceName = checkIn.workplace?.name
-        self.sessionDuration = checkIn.sessionDuration
+        self.sessionDuration = Int32(checkIn.sessionDuration)
         self.sessionNote = checkIn.sessionNote
     }
 }
@@ -25,7 +25,7 @@ struct BreathingData: Sendable {
     let timestamp: Date
     
     init(from log: BreathingExercise) {
-        self.duration = log.duration
-        self.timestamp = log.timestamp ?? Date()
+        self.duration = Int32(log.duration)
+        self.timestamp = log.completedAt ?? Date()
     }
 }

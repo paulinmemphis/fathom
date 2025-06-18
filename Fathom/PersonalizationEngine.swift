@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import Combine
+import CoreData
 
 // MARK: - Type Aliases
 
@@ -16,7 +17,21 @@ enum ContextualTriggerType: String, CaseIterable, Codable {
     case reflectionPrompt = "reflection_prompt"
 }
 
-struct ContextualTrigger: Codable, Identifiable, Sendable {
+nonisolated struct ContextualTrigger: Codable, Identifiable, Sendable {
+    nonisolated enum CodingKeys: String, CodingKey {
+        case id, name, type, message, priority, cooldownHours, lastTriggered
+    }
+    
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(type, forKey: .type)
+        try container.encode(message, forKey: .message)
+        try container.encode(priority, forKey: .priority)
+        try container.encode(cooldownHours, forKey: .cooldownHours)
+        try container.encodeIfPresent(lastTriggered, forKey: .lastTriggered)
+    }
     let id: UUID
     let name: String
     let type: ContextualTriggerType
@@ -25,11 +40,9 @@ struct ContextualTrigger: Codable, Identifiable, Sendable {
     let cooldownHours: Double // How long to wait before triggering again
     var lastTriggered: Date?
     
-    enum CodingKeys: String, CodingKey {
-        case id, name, type, message, priority, cooldownHours, lastTriggered
-    }
+
     
-    init(id: UUID = UUID(), name: String, type: ContextualTriggerType, message: String, 
+    nonisolated init(id: UUID = UUID(), name: String, type: ContextualTriggerType, message: String, 
          priority: Int = 5, cooldownHours: Double = 2.0, lastTriggered: Date? = nil) {
         self.id = id
         self.name = name
@@ -40,25 +53,46 @@ struct ContextualTrigger: Codable, Identifiable, Sendable {
         self.lastTriggered = lastTriggered
     }
     
-    var canTrigger: Bool {
+    nonisolated var canTrigger: Bool {
         guard let lastTriggered = lastTriggered else { return true }
         let cooldownInterval = cooldownHours * 3600 // Convert to seconds
         return Date().timeIntervalSince(lastTriggered) >= cooldownInterval
     }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.type = try container.decode(ContextualTriggerType.self, forKey: .type)
+        self.message = try container.decode(String.self, forKey: .message)
+        self.priority = try container.decode(Int.self, forKey: .priority)
+        self.cooldownHours = try container.decode(Double.self, forKey: .cooldownHours)
+        self.lastTriggered = try container.decodeIfPresent(Date.self, forKey: .lastTriggered)
+    }
 }
 
-struct NotificationContext: Codable, Sendable {
+nonisolated struct NotificationContext: Codable, Sendable {
+    nonisolated enum CodingKeys: String, CodingKey {
+        case workplaceName, sessionDuration, stressLevel, focusLevel, timestamp
+    }
+    
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(workplaceName, forKey: .workplaceName)
+        try container.encode(sessionDuration, forKey: .sessionDuration)
+        try container.encodeIfPresent(stressLevel, forKey: .stressLevel)
+        try container.encodeIfPresent(focusLevel, forKey: .focusLevel)
+        try container.encode(timestamp, forKey: .timestamp)
+    }
     let workplaceName: String?
     let sessionDuration: Int // in minutes
     let stressLevel: Double?
     let focusLevel: Double?
     let timestamp: Date
     
-    enum CodingKeys: String, CodingKey {
-        case workplaceName, sessionDuration, stressLevel, focusLevel, timestamp
-    }
+
     
-    init(workplaceName: String? = nil, sessionDuration: Int = 0, 
+    nonisolated init(workplaceName: String? = nil, sessionDuration: Int = 0, 
          stressLevel: Double? = nil, focusLevel: Double? = nil, timestamp: Date = Date()) {
         self.workplaceName = workplaceName
         self.sessionDuration = sessionDuration
@@ -66,9 +100,34 @@ struct NotificationContext: Codable, Sendable {
         self.focusLevel = focusLevel
         self.timestamp = timestamp
     }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.workplaceName = try container.decodeIfPresent(String.self, forKey: .workplaceName)
+        self.sessionDuration = try container.decode(Int.self, forKey: .sessionDuration)
+        self.stressLevel = try container.decodeIfPresent(Double.self, forKey: .stressLevel)
+        self.focusLevel = try container.decodeIfPresent(Double.self, forKey: .focusLevel)
+        self.timestamp = try container.decode(Date.self, forKey: .timestamp)
+    }
 }
 
-struct UserPreference: Codable, Sendable {
+nonisolated struct UserPreference: Codable, Sendable {
+    nonisolated enum CodingKeys: String, CodingKey {
+        case id, insightType, engagementScore, dismissalRate, actionRate, lastUpdated, viewCount, dismissalCount, actionCount
+    }
+    
+    nonisolated func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(insightType, forKey: .insightType)
+        try container.encode(engagementScore, forKey: .engagementScore)
+        try container.encode(dismissalRate, forKey: .dismissalRate)
+        try container.encode(actionRate, forKey: .actionRate)
+        try container.encode(lastUpdated, forKey: .lastUpdated)
+        try container.encode(viewCount, forKey: .viewCount)
+        try container.encode(dismissalCount, forKey: .dismissalCount)
+        try container.encode(actionCount, forKey: .actionCount)
+    }
     let id: UUID
     var insightType: InsightType
     var engagementScore: Double // 0.0 to 1.0, based on user interactions
@@ -79,11 +138,9 @@ struct UserPreference: Codable, Sendable {
     var dismissalCount: Int
     var actionCount: Int
     
-    enum CodingKeys: String, CodingKey {
-        case id, insightType, engagementScore, dismissalRate, actionRate, lastUpdated, viewCount, dismissalCount, actionCount
-    }
+
     
-    init(id: UUID = UUID(), insightType: InsightType, engagementScore: Double = 0.5, 
+    nonisolated init(id: UUID = UUID(), insightType: InsightType, engagementScore: Double = 0.5, 
          dismissalRate: Double = 0.1, actionRate: Double = 0.3, lastUpdated: Date = Date(), viewCount: Int = 0, dismissalCount: Int = 0, actionCount: Int = 0) {
         self.id = id
         self.insightType = insightType
@@ -96,7 +153,7 @@ struct UserPreference: Codable, Sendable {
         self.actionCount = actionCount
     }
     
-    mutating func updateEngagement(dismissed: Bool, actionTaken: Bool) {
+    nonisolated mutating func updateEngagement(dismissed: Bool, actionTaken: Bool) {
         let weight = 0.1 // Learning rate
         
         if dismissed {
@@ -111,6 +168,19 @@ struct UserPreference: Codable, Sendable {
         }
         
         lastUpdated = Date()
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.insightType = try container.decode(InsightType.self, forKey: .insightType)
+        self.engagementScore = try container.decode(Double.self, forKey: .engagementScore)
+        self.dismissalRate = try container.decode(Double.self, forKey: .dismissalRate)
+        self.actionRate = try container.decode(Double.self, forKey: .actionRate)
+        self.lastUpdated = try container.decode(Date.self, forKey: .lastUpdated)
+        self.viewCount = try container.decode(Int.self, forKey: .viewCount)
+        self.dismissalCount = try container.decode(Int.self, forKey: .dismissalCount)
+        self.actionCount = try container.decode(Int.self, forKey: .actionCount)
     }
 }
 
@@ -166,11 +236,37 @@ enum WorkIndustry: String, CaseIterable, Codable, Sendable {
     case nonprofit = "Nonprofit"
     case other = "Other"
     
-    struct CulturalNorms: Codable {
+    nonisolated struct CulturalNorms: Codable, Sendable {
+        nonisolated enum CodingKeys: String, CodingKey {
+            case pace, hierarchy, communication, workLifeBalance
+        }
+        
+        nonisolated func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(pace, forKey: .pace)
+            try container.encode(hierarchy, forKey: .hierarchy)
+            try container.encode(communication, forKey: .communication)
+            try container.encode(workLifeBalance, forKey: .workLifeBalance)
+        }
         let pace: String
         let hierarchy: String
         let communication: String
         let workLifeBalance: String
+
+        nonisolated init(pace: String, hierarchy: String, communication: String, workLifeBalance: String) {
+            self.pace = pace
+            self.hierarchy = hierarchy
+            self.communication = communication
+            self.workLifeBalance = workLifeBalance
+        }
+
+        nonisolated init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.pace = try container.decode(String.self, forKey: .pace)
+            self.hierarchy = try container.decode(String.self, forKey: .hierarchy)
+            self.communication = try container.decode(String.self, forKey: .communication)
+            self.workLifeBalance = try container.decode(String.self, forKey: .workLifeBalance)
+        }
     }
     
     var culturalNorms: CulturalNorms {
@@ -282,14 +378,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         return insightComplexity
     }
     
-    func setUserProfile(role: WorkRole, industry: WorkIndustry) {
-        updateUserRole(role)
-        updateUserIndustry(industry)
-    }
-    
-    func setInsightComplexity(_ complexity: InsightComplexity) {
-        updateInsightComplexity(complexity)
-    }
+
 
     
     func updateUserRole(_ role: WorkRole) {
@@ -685,8 +774,39 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         referenceDate: Date = Date()
     ) async -> [Insight] {
         // Map Core Data objects to Sendable structs to safely pass across actor boundaries
-        let checkInData = checkIns.map { CheckInData(from: $0) } // This now includes sessionNote
-        let breathingData = breathingLogs.map { BreathingData(from: $0) }
+        var checkInDataItems: [CheckInData] = []
+        checkInDataItems.reserveCapacity(checkIns.count)
+        for checkInObject in checkIns {
+            let objectID = checkInObject.objectID
+            let checkInDataItem: CheckInData? = await MainActor.run {
+                let context = PersistenceController.shared.container.viewContext
+                guard let mainActorCheckIn = try? context.existingObject(with: objectID) as? WorkplaceCheckIn else {
+                    return nil
+                }
+                return CheckInData(from: mainActorCheckIn) // This now includes sessionNote
+            }
+            if let item = checkInDataItem {
+                checkInDataItems.append(item)
+            }
+        }
+        let checkInData = checkInDataItems
+
+        var breathingDataItems: [BreathingData] = []
+        breathingDataItems.reserveCapacity(breathingLogs.count)
+        for logObject in breathingLogs {
+            let objectID = logObject.objectID
+            let breathingDataItem: BreathingData? = await MainActor.run {
+                let context = PersistenceController.shared.container.viewContext
+                guard let mainActorLog = try? context.existingObject(with: objectID) as? BreathingExercise else {
+                    return nil
+                }
+                return BreathingData(from: mainActorLog)
+            }
+            if let item = breathingDataItem {
+                breathingDataItems.append(item)
+            }
+        }
+        let breathingData = breathingDataItems
 
         // Generate base insights from InsightEngine
         var insights = await InsightEngine.shared.generateInsights(

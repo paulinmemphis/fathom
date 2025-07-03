@@ -550,6 +550,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     
     // MARK: - Industry/Role Adaptation
     
+    @MainActor
     func setUserProfile(role: WorkRole, industry: WorkIndustry) {
         userRole = role
         userIndustry = industry

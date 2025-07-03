@@ -2,23 +2,20 @@
 //  BreathingExercise+CoreDataClass.swift
 //  Fathom
 //
-//  Created by Cascade on $(DATE).
+//  Created by Paul Thomas on 6/28/25.
 //
 //
 
-import Foundation
-import CoreData
+public import Foundation
+public import CoreData
 
-@objc(BreathingExercise)
+public typealias BreathingExerciseCoreDataClassSet = NSSet
+
+
 public class BreathingExercise: NSManagedObject {
 
-    // Add custom methods here if needed
-    
-    @nonobjc nonisolated public class func fetchRequest() -> NSFetchRequest<BreathingExercise> {
-        return NSFetchRequest<BreathingExercise>(entityName: "BreathingExercise")
-    }
-    
-    @nonobjc nonisolated override public init(entity: NSEntityDescription, insertInto context: NSManagedObjectContext?) {
+    nonisolated override init(entity: NSEntityDescription, insertInto context: NSManagedObjectContext?) {
         super.init(entity: entity, insertInto: context)
     }
+
 }

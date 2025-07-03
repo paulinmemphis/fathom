@@ -209,7 +209,7 @@ struct PaywallView_Workplace: View {
             
             if subscriptionManager.availableProducts.isEmpty {
                 VStack(spacing: 8) {
-                    ProgressView()
+                    UserProgressView()
                     Text("Loading subscription options...")
                         .font(.subheadline)
                         .foregroundColor(.secondary)

@@ -355,7 +355,9 @@ class WorkplaceManager: ObservableObject {
             print("Successfully checked out from \(checkedOutSession.workplace?.name ?? "Unknown") at \(checkedOutSession.checkOutTime!)")
             
             // Log work session completion for streaks/achievements
-            UserStatsManager.shared.logWorkSessionCompleted(on: checkedOutSession.checkOutTime ?? Date())
+            Task { @MainActor in
+                UserStatsManager.shared.logWorkSessionCompleted(on: checkedOutSession.checkOutTime ?? Date())
+            }
 
             // Present reflection sheet if it was a manual checkout
             if !isAuto {

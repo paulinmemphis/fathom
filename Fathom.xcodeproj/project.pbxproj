@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DA40E61D2E027F5900F1209B /* JournalEntry+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA40E61B2E027F5900F1209B /* JournalEntry+CoreDataClass.swift */; };
-		DA40E61E2E027F5900F1209B /* JournalEntry+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA40E61C2E027F5900F1209B /* JournalEntry+CoreDataProperties.swift */; };
 		DAA6B2042DF8171C00A67351 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA6B2032DF8171C00A67351 /* WidgetKit.framework */; };
 		DAA6B2062DF8171C00A67351 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA6B2052DF8171C00A67351 /* SwiftUI.framework */; };
 		DAA6B2172DF8171E00A67351 /* FathomWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -79,8 +77,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		DA40E61B2E027F5900F1209B /* JournalEntry+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JournalEntry+CoreDataClass.swift"; sourceTree = "<group>"; };
-		DA40E61C2E027F5900F1209B /* JournalEntry+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JournalEntry+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DAA6B1AF2DF813E500A67351 /* Fathom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fathom.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAA6B1C32DF813E800A67351 /* FathomTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FathomTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAA6B1CD2DF813E800A67351 /* FathomUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FathomUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -208,8 +204,6 @@
 		DAA6B1A62DF813E500A67351 = {
 			isa = PBXGroup;
 			children = (
-				DA40E61B2E027F5900F1209B /* JournalEntry+CoreDataClass.swift */,
-				DA40E61C2E027F5900F1209B /* JournalEntry+CoreDataProperties.swift */,
 				DAA6B1B12DF813E500A67351 /* Fathom */,
 				DAA6B1C62DF813E800A67351 /* FathomTests */,
 				DAA6B1D02DF813E800A67351 /* FathomUITests */,
@@ -433,8 +427,6 @@
 		DAA6B1AB2DF813E500A67351 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				DA40E61D2E027F5900F1209B /* JournalEntry+CoreDataClass.swift in Sources */,
-				DA40E61E2E027F5900F1209B /* JournalEntry+CoreDataProperties.swift in Sources */,
 			);
 		};
 		DAA6B1BF2DF813E800A67351 /* Sources */ = {

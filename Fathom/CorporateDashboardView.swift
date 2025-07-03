@@ -46,24 +46,28 @@ struct CorporateDashboardView: View {
                         .padding(.horizontal)
                     
                     ChartCard(title: "Team Stress Level (Weekly Average)") {
-                        Chart(anonymizedData.stressTrend) { data in
-                            LineMark(
-                                x: .value("Week", data.week),
-                                y: .value("Stress Level", data.averageStress)
-                            )
-                            .foregroundStyle(Color.red.gradient)
+                        Chart {
+                            ForEach(anonymizedData.stressTrend) { data in
+                                LineMark(
+                                    x: .value("Week", data.week),
+                                    y: .value("Stress Level", data.averageStress)
+                                )
+                                .foregroundStyle(Color.red.gradient)
+                            }
                         }
                         .chartYScale(domain: 0...1)
                         .frame(height: 200)
                     }
                     
                     ChartCard(title: "Top Workplace Challenges") {
-                        Chart(anonymizedData.topChallenges) { challenge in
-                            BarMark(
-                                x: .value("Mentions", challenge.mentions),
-                                y: .value("Challenge", challenge.topic)
-                            )
-                            .foregroundStyle(by: .value("Topic", challenge.topic))
+                        Chart {
+                            ForEach(anonymizedData.topChallenges) { challenge in
+                                BarMark(
+                                    x: .value("Mentions", challenge.mentions),
+                                    y: .value("Challenge", challenge.topic)
+                                )
+                                .foregroundStyle(by: .value("Topic", challenge.topic))
+                            }
                         }
                         .chartLegend(.hidden)
                     }

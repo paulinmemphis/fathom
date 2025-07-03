@@ -12,45 +12,47 @@ struct ContentView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
 
     var body: some View {
-        TabView {
-            // MARK: - Today Tab (New Primary Tab)
-            TodayView()
-                .tabItem {
-                    Label("Today", systemImage: "house.fill")
-                }
-                .environmentObject(subscriptionManager)
+        NavigationView {
+            TabView {
+                // MARK: - Today Tab (New Primary Tab)
+                TodayView()
+                    .tabItem {
+                        Label("Today", systemImage: "house.fill")
+                    }
+                    .environmentObject(subscriptionManager)
 
-            // MARK: - Workplaces Tab
-            WorkplaceListView()
-                .tabItem {
-                    Label("Workplaces", systemImage: "building.2.fill")
-                }
-                .environmentObject(subscriptionManager)
+                // MARK: - Workplaces Tab
+                WorkplaceListView()
+                    .tabItem {
+                        Label("Workplaces", systemImage: "building.2.fill")
+                    }
+                    .environmentObject(subscriptionManager)
 
-            // MARK: - Wellness Tab (Combined Breathing & Tools)
-            WellnessView()
-                .tabItem {
-                    Label("Wellness", systemImage: "heart.fill")
-                }
-                .environmentObject(subscriptionManager)
+                // MARK: - Wellness Tab (Combined Breathing & Tools)
+                WellnessView()
+                    .tabItem {
+                        Label("Wellness", systemImage: "heart.fill")
+                    }
+                    .environmentObject(subscriptionManager)
 
-            // MARK: - Progress Tab (Combined Insights & Achievements)
-            ProgressView()
-                .tabItem {
-                    Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
-                }
-                .environmentObject(subscriptionManager)
-            
-            // MARK: - Profile Tab (Settings & Subscription)
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.circle.fill")
-                }
-                .environmentObject(subscriptionManager)
-        }
-        .onAppear {
-            // Perform any initial setup when the main view appears
-            print("Fathom app is running.")
+                // MARK: - Progress Tab (Combined Insights & Achievements)
+                UserProgressView()
+                    .tabItem {
+                        Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                    .environmentObject(subscriptionManager)
+                
+                // MARK: - Profile Tab (Settings & Subscription)
+                ProfileView()
+                    .tabItem {
+                        Label("Profile", systemImage: "person.circle.fill")
+                    }
+                    .environmentObject(subscriptionManager)
+            }
+            .onAppear {
+                // Perform any initial setup when the main view appears
+                print("Fathom app is running.")
+            }
         }
     }
 }
@@ -61,40 +63,38 @@ struct OldSettingsView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Subscription")) {
-                    if subscriptionManager.isProUser {
-                        HStack {
-                            Text("Status")
-                            Spacer()
-                            Text("Fathom Pro")
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        NavigationLink(destination: PaywallView_Workplace()) {
-                            Text("Upgrade to Pro")
-                        }
+        Form {
+            Section(header: Text("Subscription")) {
+                if subscriptionManager.isProUser {
+                    HStack {
+                        Text("Status")
+                        Spacer()
+                        Text("Fathom Pro")
+                            .foregroundColor(.secondary)
                     }
-                    
-                    Button("Restore Purchases") {
-                        Task {
-                            await subscriptionManager.restorePurchases()
-                        }
+                } else {
+                    NavigationLink(destination: PaywallView_Workplace()) {
+                        Text("Upgrade to Pro")
                     }
                 }
                 
-                Section(header: Text("About")) {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
+                Button("Restore Purchases") {
+                    Task {
+                        await subscriptionManager.restorePurchases()
                     }
                 }
             }
-            .navigationTitle("Settings")
+            
+            Section(header: Text("About")) {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("1.0.0")
+                        .foregroundColor(.secondary)
+                }
+            }
         }
+        .navigationTitle("Settings")
     }
 }
 

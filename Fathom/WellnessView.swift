@@ -12,34 +12,32 @@ struct WellnessView: View {
     @State private var showingFocusTimer = false
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // MARK: - Header
-                    headerSection
-                    
-                    // MARK: - Featured Exercise
-                    featuredExerciseCard
-                    
-                    // MARK: - Wellness Tools Grid
-                    wellnessToolsGrid
-                    
-                    // MARK: - Recent Activity
-                    recentActivitySection
-                    
-                    // MARK: - Pro Features
-                    if !subscriptionManager.isProUser {
-                        proFeaturesCard
-                    }
+        ScrollView {
+            VStack(spacing: 24) {
+                // MARK: - Header
+                headerSection
+                
+                // MARK: - Featured Exercise
+                featuredExerciseCard
+                
+                // MARK: - Wellness Tools Grid
+                wellnessToolsGrid
+                
+                // MARK: - Recent Activity
+                recentActivitySection
+                
+                // MARK: - Pro Features
+                if !subscriptionManager.isProUser {
+                    proFeaturesCard
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 24)
             }
-            .navigationTitle("Wellness")
-            .navigationBarTitleDisplayMode(.large)
-            .refreshable {
-                await refreshData()
-            }
+            .padding(.horizontal)
+            .padding(.bottom, 24)
+        }
+        .navigationTitle("Wellness")
+        .navigationBarTitleDisplayMode(.large)
+        .refreshable {
+            await refreshData()
         }
         .sheet(isPresented: $showingBreathingExercise) {
             BreathingExerciseView()

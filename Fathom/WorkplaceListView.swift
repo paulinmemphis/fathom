@@ -12,43 +12,41 @@ struct WorkplaceListView: View {
     
     // MARK: - Body
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) { // Added spacing: 0 if needed, or adjust as preferred
-                StreaksDisplayView()
-                    .padding(.horizontal)
-                    .padding(.top)
+        VStack(spacing: 0) { // Added spacing: 0 if needed, or adjust as preferred
+            StreaksDisplayView()
+                .padding(.horizontal)
+                .padding(.top)
 
-                if workplaceManager.workplaces.isEmpty {
-                    emptyStateView
-                } else {
-                    listView
+            if workplaceManager.workplaces.isEmpty {
+                emptyStateView
+            } else {
+                listView
+            }
+        }
+        .navigationTitle("Workplaces")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    workplaceToEdit = nil
+                    isShowingEntryView = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
                 }
             }
-            .navigationTitle("Workplaces")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        workplaceToEdit = nil
-                        isShowingEntryView = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                    }
-                }
-            }
-            .sheet(isPresented: $isShowingEntryView) {
-                WorkplaceEntryView(workplaceToEdit: workplaceToEdit)
-                    .environmentObject(subscriptionManager)
-            }
-            .sheet(item: $workplaceManager.presentingReflectionSheetForCheckIn) { checkInToReflectOn in
-                WorkSessionReflectionView(checkIn: checkInToReflectOn)
-                    .environment(\.managedObjectContext, workplaceManager.viewContextForSheet())
-            }
-            .onAppear {
-                // Ensure the list is fresh when the view appears
-                Task {
-                    await workplaceManager.loadWorkplaces()
-                }
+        }
+        .sheet(isPresented: $isShowingEntryView) {
+            WorkplaceEntryView(workplaceToEdit: workplaceToEdit)
+                .environmentObject(subscriptionManager)
+        }
+        .sheet(item: $workplaceManager.presentingReflectionSheetForCheckIn) { checkInToReflectOn in
+            WorkSessionReflectionView(checkIn: checkInToReflectOn)
+                .environment(\.managedObjectContext, workplaceManager.viewContextForSheet())
+        }
+        .onAppear {
+            // Ensure the list is fresh when the view appears
+            Task {
+                await workplaceManager.loadWorkplaces()
             }
         }
     }

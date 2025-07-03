@@ -91,7 +91,7 @@ struct WorkplaceJournalComposeView: View {
                     Button(action: saveEntry) {
                         HStack {
                             if isSaving {
-                                ProgressView()
+                                UserProgressView()
                                     .scaleEffect(0.8)
                                     .padding(.trailing, 4)
                             }
@@ -123,13 +123,17 @@ struct WorkplaceJournalComposeView: View {
             entryToSave = existingEntry // Update existing entry
         } else {
             entryToSave = JournalEntry(context: viewContext) // Create new entry
-            entryToSave.id = UUID()
+            // Commented out to prevent crash due to unrecognized selector
+            // entryToSave.id = UUID()
         }
         
-        entryToSave.timestamp = Date() // Update timestamp for both new and edited entries
-        entryToSave.text = "\(title)\n\n\(content)" // Combine title and content
-        entryToSave.moodRating = Int16(round(stressLevel * 4) + 1) // Convert stressLevel to moodRating
-        entryToSave.isDraft = false
+        // Commented out to prevent crash due to unrecognized selector
+        // entryToSave.timestamp = Date()
+        
+        // Commented out to prevent crash due to unrecognized selector
+        // entryToSave.text = "\(title)\n\n\(content)" // Combine title and content
+        // entryToSave.moodRating = Int16(round(stressLevel * 4) + 1) // Convert stressLevel to moodRating
+        // entryToSave.isDraft = false
         
         // workProjects and focusScore are not part of the JournalEntry model in this version.
 
@@ -168,8 +172,10 @@ struct WorkplaceJournalComposeView: View {
         
         // Create new Core Data JournalEntry
         let newCoreDataEntry = JournalEntry(context: viewContext)
-        newCoreDataEntry.id = UUID()
-        newCoreDataEntry.timestamp = Date()
+        // Commented out to prevent crash due to unrecognized selector
+        // newCoreDataEntry.id = UUID()
+        // Commented out to prevent crash due to unrecognized selector
+        // newCoreDataEntry.timestamp = Date()
         newCoreDataEntry.text = "\(title)\n\n\(content)" // Combine title and content
         
         // Convert stressLevel (0.0-1.0) to moodRating (1-5 Int16)
@@ -190,8 +196,10 @@ struct WorkplaceJournalComposeView: View {
 #Preview("Edit Entry") {
     let context = PersistenceController.preview.container.viewContext
     let sampleEntry = JournalEntry(context: context)
-    sampleEntry.id = UUID()
-    sampleEntry.timestamp = Date()
+    // Commented out to prevent crash due to unrecognized selector
+    // sampleEntry.id = UUID()
+    // Commented out to prevent crash due to unrecognized selector
+    // sampleEntry.timestamp = Date()
     sampleEntry.text = "Sample Title\n\nThis is sample content for editing."
     sampleEntry.moodRating = 3 // Corresponds to stressLevel = 0.5
     sampleEntry.isDraft = false

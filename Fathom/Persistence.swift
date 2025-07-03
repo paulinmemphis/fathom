@@ -1,35 +1,31 @@
 @preconcurrency import CoreData
 import SwiftUI
+import Combine
 
 @MainActor
-final class PersistenceController {
+final class PersistenceController: ObservableObject {
     // MARK: - 1. Shared Singleton for the App
     static let shared = PersistenceController()
 
-    // MARK: - 2. Persistent Container
     let container: NSPersistentContainer
 
-    // MARK: - 3. Initialization
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "Fathom") // Ensure "Fathom" matches your .xcdatamodeld file name
-
+        container = NSPersistentContainer(name: "Fathom")
         if inMemory {
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
+    }
 
-        container.loadPersistentStores { (storeDescription, error) in
-            if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate.
-                // You should not use this function in a shipping application, although it may be useful during development.
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-            
-            // Ensure viewContext configuration occurs on the main actor
-            Task { @MainActor in
-                // It's safer to use self.container here if init is not @MainActor
+    func loadStore(completion: @escaping (Error?) -> Void) {
+        container.loadPersistentStores { storeDescription, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(error)
+                    return
+                }
                 self.container.viewContext.automaticallyMergesChangesFromParent = true
-                self.container.viewContext.mergePolicy = NSErrorMergePolicy
+                self.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                completion(nil)
             }
         }
     }
@@ -43,6 +39,17 @@ final class PersistenceController {
     @MainActor
     static var preview: PersistenceController = {
         let controller = PersistenceController(inMemory: true)
+        // Synchronously load the store for previewing.
+        let group = DispatchGroup()
+        group.enter()
+        controller.loadStore { error in
+            if let error = error {
+                fatalError("Failed to load store for preview: \(error)")
+            }
+            group.leave()
+        }
+        group.wait()
+
         let context = controller.viewContext
 
         // Create sample JournalEntry data

@@ -142,7 +142,7 @@ struct WorkplaceEntryView: View {
                     } label: {
                         HStack(spacing: 4) {
                             if locationManager.isLoading {
-                                ProgressView()
+                                UserProgressView()
                                     .scaleEffect(0.8)
                             } else {
                                 Image(systemName: "location.fill")
@@ -323,7 +323,7 @@ struct WorkplaceEntryView: View {
         } label: {
             HStack {
                 if isSaving {
-                    ProgressView()
+                    UserProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.8)
                 } else {

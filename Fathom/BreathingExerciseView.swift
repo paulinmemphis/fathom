@@ -102,7 +102,7 @@ struct BreathingExerciseView: View {
             newExercise.completedAt = Date()
             newExercise.duration = Date().timeIntervalSince(startTime)
             newExercise.totalBreaths = Int16(breathCount)
-            newExercise.exerciseType = "4-4-6 Breathing" // Current breathing pattern
+            newExercise.exerciseTypes = "4-4-6 Breathing" // Current breathing pattern
             newExercise.userRating = 0 // Could be expanded to ask user for rating
             
             do {

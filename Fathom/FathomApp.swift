@@ -14,45 +14,50 @@ import FirebaseCore
 
 
 struct FathomApp: App {
+    init() {
+        FirebaseApp.configure()
+    }
     // MARK: - State Objects for Core Services
-    @StateObject private var journalStore = WorkplaceJournalStore()
-    @StateObject private var themeManager = ProfessionalThemeManager()
-    @StateObject private var subscriptionManager = SubscriptionManager() // Re-using from previous for demo
+    @StateObject private var persistenceController = PersistenceController.shared
+    @StateObject private var subscriptionManager = SubscriptionManager()
     @StateObject private var appLockManager = AppLockManager()
-    @StateObject private var locationManager = LocationManager() // Added LocationManager
-    
-    // Onboarding state
+    @StateObject private var themeManager = ProfessionalThemeManager()
+    @StateObject private var journalStore = WorkplaceJournalStore()
+    @StateObject private var locationManager = LocationManager()
+
+    @State private var isDataLoaded = false
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
-    let persistenceController = PersistenceController.shared // Your Core Data stack
-
-    init() {
-        // FirebaseApp.configure() // Configure Firebase - TODO: Add GoogleService-Info.plist when ready
-        // Configure WorkplaceManager with its dependencies
-        // This ensures that the shared instance is ready before any UI that might use it.
-        UserStatsManager.shared.configure(context: persistenceController.container.viewContext)
-        AchievementManager.shared.configure(context: persistenceController.container.viewContext) // Configure AchievementManager
-        WorkplaceManager.configureShared(
-            viewContext: PersistenceController.shared.container.viewContext,
-            locationManager: locationManager,
-            subscriptionManager: subscriptionManager
-        )
-    }
-
-    
     var body: some Scene {
         WindowGroup {
-            // MainTabView is the root, with all services injected into the environment.
-            // This architecture is clean, scalable, and easy to maintain.
-            if showOnboarding {
+            if !isDataLoaded {
+                ProgressView("Loading...")
+                    .onAppear {
+                        persistenceController.loadStore { error in
+                    if let error = error {
+                        // In a real app, you should show an error view to the user.
+                        fatalError("Failed to load Core Data: \(error)")
+                    }
+                            isDataLoaded = true
+                            // Configure other managers after data is loaded
+                            UserStatsManager.shared.configure(context: persistenceController.container.viewContext)
+                            AchievementManager.shared.configure(context: persistenceController.container.viewContext)
+                            WorkplaceManager.configureShared(
+                                viewContext: persistenceController.container.viewContext,
+                                locationManager: locationManager,
+                                subscriptionManager: subscriptionManager
+                            )
+                        }
+                    }
+            } else if showOnboarding {
                 OnboardingView(isPresented: $showOnboarding)
             } else {
                 MainTabView_Workplace()
-                    .environmentObject(journalStore)
-                    .environmentObject(themeManager)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
                     .environmentObject(subscriptionManager)
                     .environmentObject(appLockManager)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(themeManager)
+                    .environmentObject(journalStore)
             }
         }
     }

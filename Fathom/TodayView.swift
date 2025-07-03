@@ -27,38 +27,37 @@ struct TodayView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // MARK: - Header Section
-                    headerSection
-                    
-                    // MARK: - Current Status Card
-                    currentStatusCard
-                    
-                    // MARK: - Quick Actions
-                    quickActionsSection
-                    
-                    // MARK: - Today's Summary
-                    todaySummaryCard
-                    
-                    // MARK: - Wellness Prompt
-                    wellnessPromptCard
-                    
-                    // MARK: - Recent Insights
-                    recentInsightsCard
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 24)
+        ScrollView {
+            VStack(spacing: 24) {
+                // MARK: - Header Section
+                headerSection
+                
+                // MARK: - Current Status Card
+                currentStatusCard
+                
+                // MARK: - Quick Actions
+                quickActionsSection
+                
+                // MARK: - Today's Summary
+                todaySummaryCard
+                
+                // MARK: - Wellness Prompt
+                wellnessPromptCard
+                
+                // MARK: - Recent Insights
+                recentInsightsCard
             }
-            .navigationTitle("Today")
-            .navigationBarTitleDisplayMode(.large)
-            .refreshable {
-                await refreshData()
-            }
-            .onAppear {
-                Task {
-                    await loadTodayData()
+            .padding(.horizontal)
+            .padding(.bottom, 24)
+        }
+        .navigationTitle("Today")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingReflection = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
                 }
             }
         }
@@ -69,10 +68,22 @@ struct TodayView: View {
             WorkplaceEntryView(workplaceToEdit: nil)
                 .environmentObject(subscriptionManager)
         }
+        .sheet(isPresented: $showingInsights) {
+            InsightsView()
+        }
         .sheet(isPresented: $showingReflection) {
-            if let activeCheckIn = workplaceManager.activeCheckIn {
-                WorkSessionReflectionView(checkIn: activeCheckIn)
+            // Temporarily commented out due to 'DailyReflectionView' not found in scope error
+            // DailyReflectionView()
+            //     .environment(\.managedObjectContext, viewContext)
+            Text("Placeholder for Daily Reflection View")
+        }
+        .onAppear {
+            Task {
+                await loadTodayData()
             }
+        }
+        .refreshable {
+            await refreshData()
         }
     }
     

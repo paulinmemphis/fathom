@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreData
 
-struct ProgressView: View {
+struct UserProgressView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var achievementManager = AchievementManager.shared
@@ -13,40 +13,38 @@ struct ProgressView: View {
     @State private var showingPersonalizationSettings = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // MARK: - Custom Tab Picker
-                customTabPicker
-                
-                // MARK: - Content
-                Group {
-                    if selectedTab == 0 {
-                        insightsContent
-                    } else {
-                        achievementsContent
+        VStack(spacing: 0) {
+            // MARK: - Custom Tab Picker
+            customTabPicker
+            
+            // MARK: - Content
+            Group {
+                if selectedTab == 0 {
+                    insightsContent
+                } else {
+                    achievementsContent
+                }
+            }
+        }
+        .navigationTitle("Progress")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if selectedTab == 0 && subscriptionManager.isProUser {
+                    Button {
+                        showingPersonalizationSettings = true
+                    } label: {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundColor(.blue)
                     }
                 }
             }
-            .navigationTitle("Progress")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if selectedTab == 0 && subscriptionManager.isProUser {
-                        Button {
-                            showingPersonalizationSettings = true
-                        } label: {
-                            Image(systemName: "brain.head.profile")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
-            }
-            .sheet(isPresented: $showingPaywall) {
-                PaywallView_Workplace()
-            }
-            .sheet(isPresented: $showingPersonalizationSettings) {
-                PersonalizationSettingsView()
-            }
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView_Workplace()
+        }
+        .sheet(isPresented: $showingPersonalizationSettings) {
+            PersonalizationSettingsView()
         }
     }
     
@@ -820,9 +818,9 @@ struct AchievementBadge: View {
 
 // MARK: - Preview
 
-struct ProgressView_Previews: PreviewProvider {
+struct UserProgressView_Previews: PreviewProvider {
     static var previews: some View {
-        ProgressView()
+        UserProgressView()
             .environmentObject(SubscriptionManager())
     }
 }

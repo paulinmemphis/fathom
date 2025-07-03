@@ -61,7 +61,7 @@ struct InsightsView: View {
                             
                             if insights.isEmpty {
                                 VStack(spacing: 16) {
-                                    ProgressView()
+                                    UserProgressView()
                                     Text("Generating personalized insights...")
                                         .foregroundColor(.secondary)
                                 }
@@ -325,4 +325,3 @@ struct InsightsView_Previews: PreviewProvider {
             .environment(\.managedObjectContext, context)
     }
 }
-

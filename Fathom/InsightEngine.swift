@@ -109,6 +109,11 @@ class InsightEngine {
     
     static let shared = InsightEngine()
 
+    init() {
+        // Default initializer to ensure 'shared' instance can be created.
+        // All properties have default values or are configured post-init.
+    }
+
     // MARK: - Phase 2: Adaptive Thresholds
     private var adaptiveThresholds: [String: AdaptiveThreshold] = [
         "maxWeeklyHours": AdaptiveThreshold(name: "maxWeeklyHours", currentValue: 50.0, baselineValue: 50.0, minValue: 35.0, maxValue: 65.0),

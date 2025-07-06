@@ -97,18 +97,21 @@ struct BreathingExerciseView: View {
 
         // Save completed breathing exercise session if we completed at least one breath
         if breathCount > 0, let startTime = sessionStartTime {
+            // Calculate exercise duration in seconds
+            let durationInSeconds = Date().timeIntervalSince(startTime)
+            
+            // Create new Core Data entity
             let newExercise = BreathingExercise(context: viewContext)
+            newExercise.completedAt = Date()
+            newExercise.duration = durationInSeconds
             newExercise.id = UUID()
             newExercise.completedAt = Date()
-            newExercise.duration = Date().timeIntervalSince(startTime)
             newExercise.totalBreaths = Int16(breathCount)
             newExercise.exerciseTypes = "4-4-6 Breathing" // Current breathing pattern
             newExercise.userRating = 0 // Could be expanded to ask user for rating
             
             do {
                 try viewContext.save()
-                // Update user stats after successful save
-                userStatsManager.logBreathingExercise()
             } catch {
                 print("Failed to save breathing exercise: \(error)")
             }

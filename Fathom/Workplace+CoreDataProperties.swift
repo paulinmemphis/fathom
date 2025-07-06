@@ -25,7 +25,7 @@ extension Workplace {
 extension Workplace {
     var workingDaysArray: [Int] {
         get {
-            if let data = workingDays, let decoded = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? [Int] {
+            if let data = workingDays, let decoded = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSArray.self, from: data) as? [Int] {
                 return decoded
             }
             return [2, 3, 4, 5, 6] // Default: Monday-Friday
@@ -67,14 +67,14 @@ extension Workplace {
 // MARK: Generated accessors for checkIns
 extension Workplace {
     @objc(addCheckInsObject:)
-    @NSManaged public func addToCheckIns(_ value: WorkplaceCheckIn)
-
+    @NSManaged public func addToCheckIns(_ value: NSManagedObject)
+    
     @objc(removeCheckInsObject:)
-    @NSManaged public func removeFromCheckIns(_ value: WorkplaceCheckIn)
-
+    @NSManaged public func removeFromCheckIns(_ value: NSManagedObject)
+    
     @objc(addCheckIns:)
     @NSManaged public func addToCheckIns(_ values: NSSet)
-
+    
     @objc(removeCheckIns:)
     @NSManaged public func removeFromCheckIns(_ values: NSSet)
 }

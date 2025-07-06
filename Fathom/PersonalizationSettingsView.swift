@@ -2,10 +2,17 @@ import SwiftUI
 
 struct PersonalizationSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var personalizationEngine = PersonalizationEngine.shared
-    @State private var selectedRole: WorkRole = .developer
-    @State private var selectedIndustry: WorkIndustry = .technology
-    @State private var insightComplexity: InsightComplexity = .intermediate
+    @ObservedObject private var personalizationEngine = PersonalizationEngine.shared
+    @State private var selectedRole: WorkRole
+    @State private var selectedIndustry: WorkIndustry
+    @State private var insightComplexity: InsightComplexity
+
+    init() {
+        let engine = PersonalizationEngine.shared
+        _selectedRole = State(initialValue: engine.userRole)
+        _selectedIndustry = State(initialValue: engine.userIndustry)
+        _insightComplexity = State(initialValue: engine.insightComplexity)
+    }
     
     var body: some View {
         NavigationView {
@@ -20,12 +27,6 @@ struct PersonalizationSettingsView: View {
             }
             .navigationTitle("Personalization")
             .navigationBarTitleDisplayMode(.inline)
-            .task {
-                // Load current values when view appears
-                selectedRole = await personalizationEngine.getCurrentUserRole()
-                selectedIndustry = await personalizationEngine.getCurrentUserIndustry()
-                insightComplexity = await personalizationEngine.getCurrentInsightComplexity()
-            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -35,10 +36,15 @@ struct PersonalizationSettingsView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save Changes") {
                         Task {
-                            await personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
-                            await personalizationEngine.setInsightComplexity(insightComplexity)
-                            await personalizationEngine.savePreferences()
-                            dismiss()
+                            do {
+                                try personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
+                                try personalizationEngine.setInsightComplexity(insightComplexity)
+                                await personalizationEngine.persistUserPreferences()
+                                dismiss()
+                            } catch {
+                                // Handle or log the error appropriately
+                                print("Failed to save personalization settings: \(error)")
+                            }
                         }
                     }
                 }

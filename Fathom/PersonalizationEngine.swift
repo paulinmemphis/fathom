@@ -1,364 +1,80 @@
 import Foundation
+import SwiftUI
 import UserNotifications
-import Combine
+@preconcurrency import Combine
 import CoreData
+import os
 
-// MARK: - Type Aliases
 
-typealias UserPreferencesDictionary = [InsightType: UserPreference]
 
-// MARK: - Personalization Data Structures
-
-enum ContextualTriggerType: String, CaseIterable, Codable {
-    case highStress = "high_stress"
-    case lowFocus = "low_focus"
-    case longSession = "long_session"
-    case workplacePattern = "workplace_pattern"
-    case reflectionPrompt = "reflection_prompt"
-}
-
-nonisolated struct ContextualTrigger: Codable, Identifiable, Sendable {
-    nonisolated enum CodingKeys: String, CodingKey {
-        case id, name, type, message, priority, cooldownHours, lastTriggered
-    }
-    
-    nonisolated func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(name, forKey: .name)
-        try container.encode(type, forKey: .type)
-        try container.encode(message, forKey: .message)
-        try container.encode(priority, forKey: .priority)
-        try container.encode(cooldownHours, forKey: .cooldownHours)
-        try container.encodeIfPresent(lastTriggered, forKey: .lastTriggered)
-    }
-    let id: UUID
-    let name: String
-    let type: ContextualTriggerType
-    let message: String
-    let priority: Int // 1-10, higher is more important
-    let cooldownHours: Double // How long to wait before triggering again
-    var lastTriggered: Date?
-    
-
-    
-    nonisolated init(id: UUID = UUID(), name: String, type: ContextualTriggerType, message: String, 
-         priority: Int = 5, cooldownHours: Double = 2.0, lastTriggered: Date? = nil) {
-        self.id = id
-        self.name = name
-        self.type = type
-        self.message = message
-        self.priority = priority
-        self.cooldownHours = cooldownHours
-        self.lastTriggered = lastTriggered
-    }
-    
-    nonisolated var canTrigger: Bool {
-        guard let lastTriggered = lastTriggered else { return true }
-        let cooldownInterval = cooldownHours * 3600 // Convert to seconds
-        return Date().timeIntervalSince(lastTriggered) >= cooldownInterval
-    }
-
-    nonisolated init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decode(UUID.self, forKey: .id)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.type = try container.decode(ContextualTriggerType.self, forKey: .type)
-        self.message = try container.decode(String.self, forKey: .message)
-        self.priority = try container.decode(Int.self, forKey: .priority)
-        self.cooldownHours = try container.decode(Double.self, forKey: .cooldownHours)
-        self.lastTriggered = try container.decodeIfPresent(Date.self, forKey: .lastTriggered)
-    }
-}
-
-nonisolated struct NotificationContext: Codable, Sendable {
-    nonisolated enum CodingKeys: String, CodingKey {
-        case workplaceName, sessionDuration, stressLevel, focusLevel, timestamp
-    }
-    
-    nonisolated func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(workplaceName, forKey: .workplaceName)
-        try container.encode(sessionDuration, forKey: .sessionDuration)
-        try container.encodeIfPresent(stressLevel, forKey: .stressLevel)
-        try container.encodeIfPresent(focusLevel, forKey: .focusLevel)
-        try container.encode(timestamp, forKey: .timestamp)
-    }
-    let workplaceName: String?
-    let sessionDuration: Int // in minutes
-    let stressLevel: Double?
-    let focusLevel: Double?
-    let timestamp: Date
-    
-
-    
-    nonisolated init(workplaceName: String? = nil, sessionDuration: Int = 0, 
-         stressLevel: Double? = nil, focusLevel: Double? = nil, timestamp: Date = Date()) {
-        self.workplaceName = workplaceName
-        self.sessionDuration = sessionDuration
-        self.stressLevel = stressLevel
-        self.focusLevel = focusLevel
-        self.timestamp = timestamp
-    }
-
-    nonisolated init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.workplaceName = try container.decodeIfPresent(String.self, forKey: .workplaceName)
-        self.sessionDuration = try container.decode(Int.self, forKey: .sessionDuration)
-        self.stressLevel = try container.decodeIfPresent(Double.self, forKey: .stressLevel)
-        self.focusLevel = try container.decodeIfPresent(Double.self, forKey: .focusLevel)
-        self.timestamp = try container.decode(Date.self, forKey: .timestamp)
-    }
-}
-
-nonisolated struct UserPreference: Codable, Sendable {
-    nonisolated enum CodingKeys: String, CodingKey {
-        case id, insightType, engagementScore, dismissalRate, actionRate, lastUpdated, viewCount, dismissalCount, actionCount
-    }
-    
-    nonisolated func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(insightType, forKey: .insightType)
-        try container.encode(engagementScore, forKey: .engagementScore)
-        try container.encode(dismissalRate, forKey: .dismissalRate)
-        try container.encode(actionRate, forKey: .actionRate)
-        try container.encode(lastUpdated, forKey: .lastUpdated)
-        try container.encode(viewCount, forKey: .viewCount)
-        try container.encode(dismissalCount, forKey: .dismissalCount)
-        try container.encode(actionCount, forKey: .actionCount)
-    }
-    let id: UUID
-    var insightType: InsightType
-    var engagementScore: Double // 0.0 to 1.0, based on user interactions
-    var dismissalRate: Double // 0.0 to 1.0, how often user dismisses this type
-    var actionRate: Double // 0.0 to 1.0, how often user takes action
-    var lastUpdated: Date
-    var viewCount: Int
-    var dismissalCount: Int
-    var actionCount: Int
-    
-
-    
-    nonisolated init(id: UUID = UUID(), insightType: InsightType, engagementScore: Double = 0.5, 
-         dismissalRate: Double = 0.1, actionRate: Double = 0.3, lastUpdated: Date = Date(), viewCount: Int = 0, dismissalCount: Int = 0, actionCount: Int = 0) {
-        self.id = id
-        self.insightType = insightType
-        self.engagementScore = engagementScore
-        self.dismissalRate = dismissalRate
-        self.actionRate = actionRate
-        self.lastUpdated = lastUpdated
-        self.viewCount = viewCount
-        self.dismissalCount = dismissalCount
-        self.actionCount = actionCount
-    }
-    
-    nonisolated mutating func updateEngagement(dismissed: Bool, actionTaken: Bool) {
-        let weight = 0.1 // Learning rate
-        
-        if dismissed {
-            dismissalRate = dismissalRate * (1 - weight) + weight
-            engagementScore = max(0.0, engagementScore - weight * 0.5)
-        } else {
-            dismissalRate = dismissalRate * (1 - weight)
-            if actionTaken {
-                actionRate = actionRate * (1 - weight) + weight
-                engagementScore = min(1.0, engagementScore + weight)
-            }
-        }
-        
-        lastUpdated = Date()
-    }
-
-    nonisolated init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decode(UUID.self, forKey: .id)
-        self.insightType = try container.decode(InsightType.self, forKey: .insightType)
-        self.engagementScore = try container.decode(Double.self, forKey: .engagementScore)
-        self.dismissalRate = try container.decode(Double.self, forKey: .dismissalRate)
-        self.actionRate = try container.decode(Double.self, forKey: .actionRate)
-        self.lastUpdated = try container.decode(Date.self, forKey: .lastUpdated)
-        self.viewCount = try container.decode(Int.self, forKey: .viewCount)
-        self.dismissalCount = try container.decode(Int.self, forKey: .dismissalCount)
-        self.actionCount = try container.decode(Int.self, forKey: .actionCount)
-    }
-}
-
-enum WorkRole: String, CaseIterable, Codable, Sendable {
-    case developer = "Developer"
-    case designer = "Designer"
-    case manager = "Manager"
-    case analyst = "Analyst"
-    case consultant = "Consultant"
-    case educator = "Educator"
-    case healthcare = "Healthcare Professional"
-    case executive = "Executive"
-    case other = "Other"
-    
-    var description: String {
-        return rawValue
-    }
-    
-    var suggestedInsightTypes: [InsightType] {
-        switch self {
-        case .developer:
-            return [.trend, .correlation, .prediction]
-        case .designer:
-            return [.trend, .workplaceSpecific, .goalProgress]
-        case .manager:
-            return [.workplaceSpecific, .goalProgress, .prediction]
-        case .analyst:
-            return [.correlation, .anomaly, .prediction]
-        case .consultant:
-            return [.workplaceSpecific, .trend, .goalProgress]
-        case .educator:
-            return [.goalProgress, .affirmation, .suggestion]
-        case .healthcare:
-            return [.affirmation, .suggestion, .alert]
-        case .executive:
-            return [.prediction, .workplaceSpecific, .trend]
-        case .other:
-            return [.suggestion, .affirmation, .goalProgress]
-        }
-    }
-}
-
-enum WorkIndustry: String, CaseIterable, Codable, Sendable {
-    case technology = "Technology"
-    case healthcare = "Healthcare"
-    case finance = "Finance"
-    case education = "Education"
-    case retail = "Retail"
-    case manufacturing = "Manufacturing"
-    case consulting = "Consulting"
-    case media = "Media"
-    case government = "Government"
-    case nonprofit = "Nonprofit"
-    case other = "Other"
-    
-    nonisolated struct CulturalNorms: Codable, Sendable {
-        nonisolated enum CodingKeys: String, CodingKey {
-            case pace, hierarchy, communication, workLifeBalance
-        }
-        
-        nonisolated func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(pace, forKey: .pace)
-            try container.encode(hierarchy, forKey: .hierarchy)
-            try container.encode(communication, forKey: .communication)
-            try container.encode(workLifeBalance, forKey: .workLifeBalance)
-        }
-        let pace: String
-        let hierarchy: String
-        let communication: String
-        let workLifeBalance: String
-
-        nonisolated init(pace: String, hierarchy: String, communication: String, workLifeBalance: String) {
-            self.pace = pace
-            self.hierarchy = hierarchy
-            self.communication = communication
-            self.workLifeBalance = workLifeBalance
-        }
-
-        nonisolated init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.pace = try container.decode(String.self, forKey: .pace)
-            self.hierarchy = try container.decode(String.self, forKey: .hierarchy)
-            self.communication = try container.decode(String.self, forKey: .communication)
-            self.workLifeBalance = try container.decode(String.self, forKey: .workLifeBalance)
-        }
-    }
-    
-    var culturalNorms: CulturalNorms {
-        switch self {
-        case .technology:
-            return CulturalNorms(pace: "Fast", hierarchy: "Flat", communication: "Direct", workLifeBalance: "Flexible")
-        case .healthcare:
-            return CulturalNorms(pace: "Urgent", hierarchy: "Structured", communication: "Precise", workLifeBalance: "Demanding")
-        case .finance:
-            return CulturalNorms(pace: "Fast", hierarchy: "Hierarchical", communication: "Formal", workLifeBalance: "Intense")
-        case .education:
-            return CulturalNorms(pace: "Steady", hierarchy: "Collaborative", communication: "Supportive", workLifeBalance: "Seasonal")
-        case .retail:
-            return CulturalNorms(pace: "Variable", hierarchy: "Clear", communication: "Customer-focused", workLifeBalance: "Shift-based")
-        case .manufacturing:
-            return CulturalNorms(pace: "Consistent", hierarchy: "Clear", communication: "Safety-focused", workLifeBalance: "Structured")
-        case .consulting:
-            return CulturalNorms(pace: "Project-driven", hierarchy: "Client-focused", communication: "Analytical", workLifeBalance: "Variable")
-        case .media:
-            return CulturalNorms(pace: "Deadline-driven", hierarchy: "Creative", communication: "Collaborative", workLifeBalance: "Irregular")
-        case .government:
-            return CulturalNorms(pace: "Methodical", hierarchy: "Formal", communication: "Procedural", workLifeBalance: "Stable")
-        case .nonprofit:
-            return CulturalNorms(pace: "Mission-driven", hierarchy: "Collaborative", communication: "Values-based", workLifeBalance: "Purpose-focused")
-        case .other:
-            return CulturalNorms(pace: "Variable", hierarchy: "Variable", communication: "Adaptive", workLifeBalance: "Variable")
-        }
-    }
-}
-
-enum InsightComplexity: String, CaseIterable, Codable, Sendable {
-    case basic = "Basic"
-    case intermediate = "Intermediate"
-    case advanced = "Advanced"
-    
-    var intValue: Int {
-        switch self {
-        case .basic:
-            return 1
-        case .intermediate:
-            return 2
-        case .advanced:
-            return 3
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .basic:
-            return "Simple, actionable insights"
-        case .intermediate:
-            return "Moderate complexity with some analysis"
-        case .advanced:
-            return "Complex insights requiring deeper understanding"
-        }
-    }
-}
-
-// MARK: - Personalization Engine
-
-actor PersonalizationEngine: ObservableObject, Sendable {
+@available(iOS 14.0, *)
+@MainActor
+final class PersonalizationEngine: ObservableObject {
     static let shared = PersonalizationEngine()
     
+    // MARK: - Published Properties
     @Published private(set) var userRole: WorkRole = .other
     @Published private(set) var userIndustry: WorkIndustry = .other
     @Published private(set) var insightComplexity: InsightComplexity = .basic
+    @Published private(set) var isInitialized = false
     
+    // MARK: - Private Properties
     private var userPreferences: UserPreferencesDictionary = [:]
     private var contextualTriggers: [ContextualTrigger] = []
+    private var pendingPreferenceUpdates: [InsightType: UserPreference] = [:]
     
     private let userDefaults = UserDefaults.standard
     private var cancellables = Set<AnyCancellable>()
-    
     private let notificationCenter: UNUserNotificationCenter
+    private let logger = Logger(subsystem: "PersonalizationEngine", category: "main")
+    
+    // MARK: - Constants
+    private enum Keys {
+        static let userPreferences = "PersonalizationEngine.userPreferences"
+        static let userRole = "PersonalizationEngine.userRole"
+        static let userIndustry = "PersonalizationEngine.userIndustry"
+        static let insightComplexity = "PersonalizationEngine.insightComplexity"
+        static let contextualTriggers = "PersonalizationEngine.contextualTriggers"
+    }
     
     private init() {
         notificationCenter = UNUserNotificationCenter.current()
-        // NOTE: You must call await PersonalizationEngine.shared.initialize() after creation to complete setup.
-        // Do NOT call actor-isolated methods here.
     }
 
-    /// Call this after creation to complete async setup
-    func initialize() async {
-        await loadUserPreferences()
-        await setupDefaultTriggers()
-        await updateComplexityBasedOnUsage()
+    // MARK: - Initialization
+    
+    @MainActor func initialize() async throws {
+        guard !isInitialized else { return }
         
-        // Set up the NotificationCenter publisher here where we can safely access actor properties
+        await loadUserPreferences()
+        await setupDefaultTriggersIfNeeded()
+        await updateComplexityBasedOnUsage()
+        setupNotificationObserver()
+        setupPersistenceTimer()
+        isInitialized = true
+        logger.info("PersonalizationEngine initialized successfully")
+    }
+    
+    @MainActor private func setupNotificationObserver() {
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .sink { [actor = self] _ in
-                Task {
-                    await actor.loadUserPreferences()
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task { @MainActor [weak self] in
+                    guard let self = self, self.isInitialized else { return }
+                    await self.loadUserPreferences()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    @MainActor private func setupPersistenceTimer() {
+        Timer.publish(every: 30, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task { @MainActor [weak self] in
+                    await self?.flushPendingUpdates()
                 }
             }
             .store(in: &cancellables)
@@ -366,56 +82,94 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     
     // MARK: - Public Interface
     
-    func getCurrentUserRole() -> WorkRole {
+    func getUserRole() -> WorkRole {
         return userRole
     }
     
-    func getCurrentUserIndustry() -> WorkIndustry {
+    func getUserIndustry() -> WorkIndustry {
         return userIndustry
     }
     
-    func getCurrentInsightComplexity() -> InsightComplexity {
+    func getInsightComplexity() -> InsightComplexity {
         return insightComplexity
     }
     
-
-
-    
-    func updateUserRole(_ role: WorkRole) {
+    @MainActor func setUserProfile(role: WorkRole, industry: WorkIndustry) throws {
+        guard isInitialized else {
+            throw PersonalizationError.initializationFailure
+        }
+        
         userRole = role
-        userDefaults.set(role.rawValue, forKey: "userRole")
-        updateContextualTriggersForProfile()
-    }
-    
-    func updateUserIndustry(_ industry: WorkIndustry) {
         userIndustry = industry
-        userDefaults.set(industry.rawValue, forKey: "userIndustry")
-        updateContextualTriggersForProfile()
+        userDefaults.set(role.rawValue, forKey: Keys.userRole)
+        userDefaults.set(industry.rawValue, forKey: Keys.userIndustry)
+        
+        Task {
+            await updateContextualTriggersForProfile()
+        }
+        
+        logger.info("User profile updated: role=\(role.rawValue), industry=\(industry.rawValue)")
     }
     
-    func updateInsightComplexity(_ complexity: InsightComplexity) {
+    @MainActor func setInsightComplexity(_ complexity: InsightComplexity) throws {
+        guard isInitialized else {
+            throw PersonalizationError.initializationFailure
+        }
+        
+        guard complexity != insightComplexity else { return }
+        
         insightComplexity = complexity
-        userDefaults.set(complexity.rawValue, forKey: "insightComplexity")
+        userDefaults.set(complexity.rawValue, forKey: Keys.insightComplexity)
+        
+        logger.info("Insight complexity updated to: \(complexity.rawValue)")
     }
     
     // MARK: - Preference Learning
     
-    // Make saveUserPreferences public for the settings view
-    public func saveUserPreferences() {
-        do {
-            let data = try JSONEncoder().encode(userPreferences)
-            userDefaults.set(data, forKey: "userPreferences")
-        } catch {
-            print("Error saving user preferences: \(error)")
+    @MainActor func recordInsightEngagement(_ type: InsightType, wasDismissed: Bool, actionTaken: Bool) throws {
+        guard isInitialized else {
+            throw PersonalizationError.initializationFailure
         }
-    }
-
-    
-    func recordInsightEngagement(_ type: InsightType, wasDismissed: Bool, actionTaken: Bool) {
+        
         var preference = userPreferences[type] ?? UserPreference(insightType: type)
         preference.updateEngagement(dismissed: wasDismissed, actionTaken: actionTaken)
+        
+        // Store in pending updates for batched persistence
+        pendingPreferenceUpdates[type] = preference
         userPreferences[type] = preference
-        _persistUserPreferencesDictionary()
+        
+        logger.debug("Recorded engagement for \(type.rawValue): dismissed=\(wasDismissed), action=\(actionTaken)")
+    }
+    
+    @MainActor func recordInteraction(for insightType: InsightType, action: InteractionAction) throws {
+        guard isInitialized else {
+            throw PersonalizationError.initializationFailure
+        }
+        
+        var preference = userPreferences[insightType] ?? UserPreference(insightType: insightType)
+        
+        switch action {
+        case .viewed:
+            preference.viewCount += 1
+        case .dismissed:
+            preference.dismissalCount += 1
+            preference.engagementScore = max(0.0, preference.engagementScore - 0.05)
+        case .actionTaken:
+            preference.actionCount += 1
+            preference.engagementScore = min(1.0, preference.engagementScore + 0.1)
+        }
+        
+        // Update engagement score based on interaction patterns
+        let totalInteractions = preference.viewCount + preference.dismissalCount + preference.actionCount
+        if totalInteractions > 0 {
+            let positiveRatio = Double(preference.actionCount) / Double(totalInteractions)
+            let dismissalPenalty = Double(preference.dismissalCount) / Double(totalInteractions) * 0.3
+            preference.engagementScore = max(0.0, min(1.0, positiveRatio - dismissalPenalty))
+        }
+        
+        preference.lastUpdated = Date()
+        pendingPreferenceUpdates[insightType] = preference
+        userPreferences[insightType] = preference
     }
     
     func getEngagementScore(for type: InsightType) -> Double {
@@ -423,7 +177,6 @@ actor PersonalizationEngine: ObservableObject, Sendable {
     }
     
     func getInsightPriority(_ type: InsightType) -> Double {
-        // Base priority on engagement score and complexity level
         let baseScore = getEngagementScore(for: type)
         let complexityMultiplier: Double
         
@@ -439,96 +192,44 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         return baseScore * complexityMultiplier
     }
     
-    func recordInteraction(for insightType: InsightType, action: InteractionAction) async {
-        var preference = userPreferences[insightType] ?? UserPreference(insightType: insightType)
-        
-        switch action {
-        case .viewed:
-            preference.viewCount += 1
-        case .dismissed:
-            preference.dismissalCount += 1
-        case .actionTaken:
-            preference.actionCount += 1
-            preference.engagementScore = min(1.0, preference.engagementScore + 0.1)
-        }
-        
-        // Update engagement score based on interaction patterns
-        let totalInteractions = preference.viewCount + preference.dismissalCount + preference.actionCount
-        if totalInteractions > 0 {
-            let positiveRatio = Double(preference.actionCount) / Double(totalInteractions)
-            let dismissalPenalty = Double(preference.dismissalCount) / Double(totalInteractions) * 0.3
-            preference.engagementScore = max(0.0, min(1.0, positiveRatio - dismissalPenalty))
-        }
-        
-        userPreferences[insightType] = preference
-        _persistUserPreferencesDictionary()
-    }
-    
-    func getContextualTriggers() -> [ContextualTrigger] {
-        return contextualTriggers
-    }
-    
-    enum InteractionAction {
-        case viewed
-        case dismissed
-        case actionTaken
-    }
-    
     // MARK: - Insight Adaptation and Filtering
-    
-    func filterInsightsByComplexity(_ insights: [Insight]) -> [Insight] {
+
+    func filterInsightsByComplexity(_ insights: [InsightData]) -> [InsightData] {
         let userMaxComplexity = insightComplexity
         return insights.filter { insight in
-            let insightComplexity = complexityForInsightType(insight.type)
+            let complexity = complexityForInsightType(insight.type)
             switch userMaxComplexity {
             case .basic:
-                return insightComplexity == .basic
+                return complexity == .basic
             case .intermediate:
-                return insightComplexity == .basic || insightComplexity == .intermediate
+                return complexity == .basic || complexity == .intermediate
             case .advanced:
                 return true
             }
         }
     }
-    
+
     private func complexityForInsightType(_ type: InsightType) -> InsightComplexity {
-        // Map insight types to complexity levels
         switch type {
-        case .trend:
+        case .trend, .alert, .suggestion, .affirmation, .observation, .question:
             return .basic
-        case .workplaceSpecific, .goalProgress, .correlation:
+        case .workplaceSpecific, .goalProgress, .correlation, .warning, .celebration:
             return .intermediate
         case .anomaly, .prediction:
             return .advanced
-        case .alert, .suggestion, .affirmation:
-            return .basic
-        case .observation, .question:
-            return .basic
-        case .warning, .celebration:
-            return .basic
         }
     }
-    
-    // MARK: - Insight Adaptation
-    
-    private func adaptInsightForProfile(_ insight: Insight) -> Insight {
+
+    @MainActor func adaptInsightForProfile(_ insight: InsightData) -> InsightData {
         var adaptedInsight = insight
-        
-        // Adjust message based on user's role and industry
-        adaptedInsight.message = insight.message
         
         // Adjust priority based on user preferences
         if let preference = userPreferences[insight.type] {
-            // Increase priority for insights the user engages with
             if preference.engagementScore > 0.7 {
                 adaptedInsight.priority += 1
-            }
-            // Decrease priority for insights the user often dismisses
-            else if preference.dismissalRate > 0.5 {
+            } else if preference.dismissalRate > 0.5 {
                 adaptedInsight.priority = max(1, adaptedInsight.priority - 1)
             }
-            
-            // Adjust confidence based on action rate
             adaptedInsight.confidence = min(1.0, adaptedInsight.confidence * (0.8 + (preference.actionRate * 0.2)))
         }
         
@@ -537,7 +238,6 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         case .manager:
             adaptedInsight.message = adaptedInsight.message.replacingOccurrences(of: "you", with: "your team")
         case .executive:
-            // Add more strategic language for executives
             if !adaptedInsight.message.contains("strategic") {
                 adaptedInsight.message = "From a strategic perspective: " + adaptedInsight.message
             }
@@ -547,31 +247,17 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         
         return adaptedInsight
     }
-    
-    // MARK: - Industry/Role Adaptation
-    
-    func setUserProfile(role: WorkRole, industry: WorkIndustry) {
-        userRole = role
-        userIndustry = industry
-        
-        userDefaults.set(role.rawValue, forKey: "userRole")
-        userDefaults.set(industry.rawValue, forKey: "userIndustry")
-        
-        updateContextualTriggersForProfile()
-    }
-    
-    func setInsightComplexity(_ complexity: InsightComplexity) {
-        insightComplexity = complexity
-        userDefaults.set(complexity.rawValue, forKey: "insightComplexity")
-    }
-    
-    func savePreferences() {
-        saveUserPreferences()
-    }
 
     // MARK: - Contextual Triggers
+
+    func getContextualTriggers() -> [ContextualTrigger] {
+        return contextualTriggers
+    }
     
-    private func setupDefaultTriggers() {
+    @MainActor private func setupDefaultTriggersIfNeeded() async {
+        // Only setup if no triggers exist
+        guard contextualTriggers.isEmpty else { return }
+        
         contextualTriggers = [
             ContextualTrigger(
                 name: "High Stress Detection",
@@ -595,13 +281,14 @@ actor PersonalizationEngine: ObservableObject, Sendable {
                 cooldownHours: 6.0
             )
         ]
+        
+        await saveContextualTriggers()
     }
-    
-    private func updateContextualTriggersForProfile() {
-        // Add role-specific triggers
+
+    @MainActor private func updateContextualTriggersForProfile() async {
         switch userRole {
         case .developer:
-            addTriggerIfNeeded(ContextualTrigger(
+            await addTriggerIfNeeded(ContextualTrigger(
                 name: "Code Review Break",
                 type: .workplacePattern,
                 message: "Debugging can be mentally taxing. Take a step back to gain fresh perspective.",
@@ -609,7 +296,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
                 cooldownHours: 3.0
             ))
         case .manager:
-            addTriggerIfNeeded(ContextualTrigger(
+            await addTriggerIfNeeded(ContextualTrigger(
                 name: "Meeting Overload",
                 type: .workplacePattern,
                 message: "Multiple meetings can be draining. Schedule some focus time for yourself.",
@@ -617,7 +304,7 @@ actor PersonalizationEngine: ObservableObject, Sendable {
                 cooldownHours: 4.0
             ))
         case .designer:
-            addTriggerIfNeeded(ContextualTrigger(
+            await addTriggerIfNeeded(ContextualTrigger(
                 name: "Creative Block",
                 type: .workplacePattern,
                 message: "Creative blocks are normal. Try changing your environment or taking a walk.",
@@ -627,199 +314,219 @@ actor PersonalizationEngine: ObservableObject, Sendable {
         default:
             break
         }
+        
+        await saveContextualTriggers()
     }
-    
-    private func addTriggerIfNeeded(_ trigger: ContextualTrigger) {
+
+    @MainActor private func addTriggerIfNeeded(_ trigger: ContextualTrigger) async {
         if !contextualTriggers.contains(where: { $0.name == trigger.name }) {
             contextualTriggers.append(trigger)
         }
     }
-    
-    // MARK: - Progressive Insights
-    
-    private func updateComplexityBasedOnUsage() {
-        let totalInteractions = userPreferences.values.reduce(0) { $0 + Int($1.engagementScore * 100) }
-        
-        if totalInteractions > 500 {
-            insightComplexity = .advanced
-        } else if totalInteractions > 200 {
-            insightComplexity = .intermediate
-        } else {
-            insightComplexity = .basic
-        }
-        
-        userDefaults.set(insightComplexity.rawValue, forKey: "insightComplexity")
-    }
-    
-    // MARK: - Persistence
-    
-    private func _persistUserPreferencesDictionary() {
-        do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(userPreferences)
-            userDefaults.set(data, forKey: "userPreferences")
-            userDefaults.set(userRole.rawValue, forKey: "userRole")
-            userDefaults.set(userIndustry.rawValue, forKey: "userIndustry")
-            userDefaults.set(insightComplexity.rawValue, forKey: "insightComplexity")
-        } catch {
-            print("Failed to save user preferences: \(error)")
-        }
-    }
-    
-    private func loadUserPreferences() async {
-        // Load preferences
-        if let data = userDefaults.data(forKey: "userPreferences") {
-            do {
-                userPreferences = try JSONDecoder().decode(UserPreferencesDictionary.self, from: data)
-            } catch {
-                print("Failed to load user preferences: \(error)")
-                userPreferences = [:]
-            }
-        }
-        
-        // Load complexity setting
-        if let complexityRaw = userDefaults.object(forKey: "insightComplexity") as? String {
-            insightComplexity = InsightComplexity(rawValue: complexityRaw) ?? .basic
-        }
-        
-        // Load other settings
-        userRole = WorkRole(rawValue: userDefaults.string(forKey: "userRole") ?? "") ?? .other
-        userIndustry = WorkIndustry(rawValue: userDefaults.string(forKey: "userIndustry") ?? "") ?? .other
-    }
-    
-    // MARK: - Contextual Triggers
-    
-    func evaluateContextualTriggers(for checkIn: WorkplaceCheckIn) -> [ContextualTrigger] {
+
+    @MainActor func evaluateContextualTriggers(for checkIn: WorkplaceCheckInData) -> [ContextualTrigger] {
         var activeTriggers: [ContextualTrigger] = []
         
-        // Check each trigger to see if it should be activated
         for trigger in contextualTriggers {
             if shouldTrigger(trigger, for: checkIn) {
                 activeTriggers.append(trigger)
             }
         }
         
-        // Sort by priority (highest first)
         return activeTriggers.sorted { $0.priority > $1.priority }
     }
-    
-    private func shouldTrigger(_ trigger: ContextualTrigger, for checkIn: WorkplaceCheckIn) -> Bool {
-        // Check cooldown
+
+    private func shouldTrigger(_ trigger: ContextualTrigger, for checkIn: WorkplaceCheckInData) -> Bool {
         guard trigger.canTrigger else { return false }
         
         switch trigger.type {
         case .highStress:
-            // Trigger if stress level is above threshold
-            return checkIn.stressLevel > 0.7
-            
+            return (checkIn.stressLevel ?? 0.0) > 0.7
         case .lowFocus:
-            // Trigger if focus level is below threshold
-            return checkIn.focusLevel < 0.4
-            
+            return (checkIn.focusLevel ?? 0.0) < 0.4
         case .longSession:
-            // Trigger if session duration is long
-            return checkIn.sessionDuration > 120 // 2 hours
-            
+            return checkIn.sessionDuration > 240 // 4 hours in minutes
         case .workplacePattern:
-            // Check for specific workplace patterns
             return checkWorkplacePatterns(for: checkIn)
-            
         case .reflectionPrompt:
-            // Random chance for reflection prompt, but not too often
             return Int.random(in: 1...100) <= 10 // 10% chance
         }
     }
-    
-    private func checkWorkplacePatterns(for checkIn: WorkplaceCheckIn) -> Bool {
-        // Implement specific workplace pattern checks
-        // This is a simplified example - you'd want to make this more sophisticated
-        
-        // Example: Check if this is a common time for high stress
+
+    private func checkWorkplacePatterns(for checkIn: WorkplaceCheckInData) -> Bool {
         let calendar = Calendar.current
         let hour = calendar.component(.hour, from: checkIn.timestamp)
         
-        // If it's late afternoon (3-5pm) and stress is increasing
+        // Afternoon stress check
         if (15...17).contains(hour) {
-            return checkIn.stressLevel > 0.6
+            return (checkIn.stressLevel ?? 0.0) > 0.6
         }
         
         return false
     }
-    
-    func markTriggerUsed(_ trigger: ContextualTrigger) {
-        if let index = contextualTriggers.firstIndex(where: { $0.id == trigger.id }) {
-            var updatedTrigger = contextualTriggers[index]
-            updatedTrigger.lastTriggered = Date()
-            contextualTriggers[index] = updatedTrigger
+
+    @MainActor func markTriggerUsed(_ trigger: ContextualTrigger) {
+        guard let index = contextualTriggers.firstIndex(where: { $0.id == trigger.id }),
+              index < contextualTriggers.count else {
+            logger.warning("Attempted to mark non-existent trigger as used: \(trigger.id)")
+            return
+        }
+        
+        var updatedTrigger = contextualTriggers[index]
+        updatedTrigger.lastTriggered = Date()
+        contextualTriggers[index] = updatedTrigger
+        
+        Task {
+            await saveContextualTriggers()
+        }
+    }
+
+    // MARK: - Progressive Insights
+
+    @MainActor private func updateComplexityBasedOnUsage() async {
+        let totalEngagement = userPreferences.values.reduce(0) { $0 + $1.engagementScore }
+        let averageEngagement = userPreferences.isEmpty ? 0 : totalEngagement / Double(userPreferences.count)
+        let totalInteractions = userPreferences.values.reduce(0) { $0 + $1.viewCount + $1.actionCount }
+        
+        let newComplexity: InsightComplexity
+        if totalInteractions > 500 && averageEngagement > 0.7 {
+            newComplexity = .advanced
+        } else if totalInteractions > 200 && averageEngagement > 0.5 {
+            newComplexity = .intermediate
+        } else {
+            newComplexity = .basic
+        }
+        
+        if newComplexity != insightComplexity {
+            insightComplexity = newComplexity
+            userDefaults.set(insightComplexity.rawValue, forKey: Keys.insightComplexity)
+            logger.info("Complexity auto-updated to: \(newComplexity.rawValue)")
+        }
+    }
+
+    // MARK: - Persistence
+
+    @MainActor private func flushPendingUpdates() async {
+        guard !pendingPreferenceUpdates.isEmpty else { return }
+        
+        let updateCount = pendingPreferenceUpdates.count
+        
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(userPreferences)
+            userDefaults.set(data, forKey: Keys.userPreferences)
+            pendingPreferenceUpdates.removeAll()
+            logger.debug("Flushed \(updateCount) preference updates")
+        } catch {
+            logger.error("Failed to flush preference updates: \(error)")
+        }
+    }
+
+    @MainActor func persistUserPreferences() {
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(userPreferences)
+            userDefaults.set(data, forKey: Keys.userPreferences)
+        } catch {
+            logger.error("Failed to persist user preferences: \(error)")
         }
     }
     
+    @MainActor private func saveContextualTriggers() async {
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(contextualTriggers)
+            userDefaults.set(data, forKey: Keys.contextualTriggers)
+        } catch {
+            logger.error("Failed to save contextual triggers: \(error)")
+        }
+    }
+
+    @MainActor private func loadUserPreferences() async {
+        // Load user preferences
+        if let data = userDefaults.data(forKey: Keys.userPreferences) {
+            do {
+                userPreferences = try JSONDecoder().decode(UserPreferencesDictionary.self, from: data)
+            } catch {
+                logger.error("Failed to load user preferences: \(error)")
+                userPreferences = [:]
+            }
+        }
+        
+        // Load contextual triggers - preserve defaults if loading fails
+        if let data = userDefaults.data(forKey: Keys.contextualTriggers) {
+            do {
+                let loadedTriggers = try JSONDecoder().decode([ContextualTrigger].self, from: data)
+                if !loadedTriggers.isEmpty {
+                    contextualTriggers = loadedTriggers
+                }
+            } catch {
+                logger.error("Failed to load contextual triggers: \(error)")
+                // Keep existing triggers or let setupDefaultTriggersIfNeeded handle it
+            }
+        }
+        
+        // Load other settings
+        if let complexityRaw = userDefaults.string(forKey: Keys.insightComplexity) {
+            insightComplexity = InsightComplexity(rawValue: complexityRaw) ?? .basic
+        }
+        
+        if let roleRaw = userDefaults.string(forKey: Keys.userRole) {
+            userRole = WorkRole(rawValue: roleRaw) ?? .other
+        }
+        
+        if let industryRaw = userDefaults.string(forKey: Keys.userIndustry) {
+            userIndustry = WorkIndustry(rawValue: industryRaw) ?? .other
+        }
+    }
+
     // MARK: - Insight Generation
-    
-    /// Generates personalized insights based on user data and preferences
-    /// - Parameters:
-    ///   - checkIns: Array of workplace check-ins
-    ///   - breathingLogs: Array of breathing exercise logs (optional)
-    ///   - journalEntries: Array of journal entries (optional)
-    ///   - goals: Array of user goals (optional)
-    ///   - days: Number of days to look back for insights (default: 7)
-    ///   - referenceDate: Reference date for time-based calculations (default: current date)
-    /// - Returns: Array of personalized insights
+
     func generatePersonalizedInsights(
-        checkIns: [WorkplaceCheckIn],
-        breathingLogs: [BreathingExercise] = [],
-        journalEntries: [WorkplaceJournalEntry] = [],
-        goals: [UserGoal] = [],
+        checkIns: [WorkplaceCheckInData],
+        breathingLogs: [BreathingSessionData] = [],
+        journalEntries: [WorkplaceJournalEntryData] = [],
+        goals: [UserGoalData] = [],
         forLastDays days: Int = 7,
         referenceDate: Date = Date()
-    ) async -> [Insight] {
-        // Map Core Data objects to Sendable structs to safely pass across actor boundaries
-        var checkInDataItems: [CheckInData] = []
-        checkInDataItems.reserveCapacity(checkIns.count)
-        for checkInObject in checkIns {
-            let objectID = checkInObject.objectID
-            let checkInDataItem: CheckInData? = await MainActor.run {
-                let context = PersistenceController.shared.container.viewContext
-                guard let mainActorCheckIn = try? context.existingObject(with: objectID) as? WorkplaceCheckIn else {
-                    return nil
-                }
-                return CheckInData(from: mainActorCheckIn) // This now includes sessionNote
+    ) async -> [InsightData] {
+        guard isInitialized else { return [] }
+        
+        // Basic insight generation (you'll need to implement your specific logic)
+        var insights: [InsightData] = []
+        
+        // Example insights based on check-ins
+        if !checkIns.isEmpty {
+            let stressLevels = checkIns.compactMap(\.stressLevel)
+            let avgStress = stressLevels.isEmpty ? 0.0 : stressLevels.reduce(0, +) / Double(stressLevels.count)
+            
+            let focusLevels = checkIns.compactMap(\.focusLevel)
+            let avgFocus = focusLevels.isEmpty ? 0.0 : focusLevels.reduce(0, +) / Double(focusLevels.count)
+            
+            if avgStress > 0.7 {
+                insights.append(InsightData(
+                    type: .warning,
+                    message: "Your stress levels have been consistently high this week. Consider implementing stress management techniques.",
+                    priority: 8
+                ))
             }
-            if let item = checkInDataItem {
-                checkInDataItems.append(item)
-            }
-        }
-        let checkInData = checkInDataItems
-
-        var breathingDataItems: [BreathingData] = []
-        breathingDataItems.reserveCapacity(breathingLogs.count)
-        for logObject in breathingLogs {
-            let objectID = logObject.objectID
-            let breathingDataItem: BreathingData? = await MainActor.run {
-                let context = PersistenceController.shared.container.viewContext
-                guard let mainActorLog = try? context.existingObject(with: objectID) as? BreathingExercise else {
-                    return nil
-                }
-                return BreathingData(from: mainActorLog)
-            }
-            if let item = breathingDataItem {
-                breathingDataItems.append(item)
+            
+            if avgFocus < 0.4 {
+                insights.append(InsightData(
+                    type: .suggestion,
+                    message: "Your focus has been lower than usual. Try breaking work into smaller, focused sessions.",
+                    priority: 6
+                ))
             }
         }
-        let breathingData = breathingDataItems
-
-        // Generate base insights from InsightEngine
-        var insights = await InsightEngine.shared.generateInsights(
-            checkIns: checkInData,
-            breathingLogs: breathingData,
-            journalEntries: journalEntries,
-            goals: goals,
-            forLastDays: days,
-            referenceDate: referenceDate
-        )
-        // Apply personalization
+        
+        // Filter and adapt insights
         insights = filterInsightsByComplexity(insights)
-        insights = insights.map { adaptInsightForProfile($0) }
+        
+        // Ensure insights adaptation happens on the main thread
+        Task { @MainActor in
+            insights = insights.map { self.adaptInsightForProfile($0) }
+        }
         
         // Sort by priority and engagement
         insights.sort { lhs, rhs in
@@ -832,20 +539,22 @@ actor PersonalizationEngine: ObservableObject, Sendable {
             return lhsEngagement > rhsEngagement
         }
         
+        logger.info("Generated \(insights.count) personalized insights")
         return insights
     }
     
-    // MARK: - Main Actor Access Properties
+    // MARK: - Cleanup
     
-    func getCurrentInsightComplexity() async -> InsightComplexity {
-        return insightComplexity
+    func cleanup() async {
+        await flushPendingUpdates()
+        cancellables.removeAll()
+        logger.info("PersonalizationEngine cleanup completed")
     }
     
-    func getCurrentUserRole() async -> WorkRole {
-        return userRole
-    }
-    
-    func getCurrentUserIndustry() async -> WorkIndustry {
-        return userIndustry
+    deinit {
+        // `cancellables` must be cleaned up in an actor-isolated context.
+        // Since this is a singleton, deinit is not expected to be called during the app's lifecycle.
+        // Proper cleanup should be handled by an explicit call to a cleanup() function if needed.
+        logger.info("PersonalizationEngine deinitialized")
     }
 }

@@ -1,9 +1,9 @@
 import Foundation
 import CoreData
 
-extension WorkplaceCheckIn {
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<WorkplaceCheckIn> {
-        return NSFetchRequest<WorkplaceCheckIn>(entityName: "WorkplaceCheckIn")
+extension Fathom.WorkplaceCheckIn {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<Fathom.WorkplaceCheckIn> {
+        return NSFetchRequest<Fathom.WorkplaceCheckIn>(entityName: "WorkplaceCheckIn")
     }
 
     @NSManaged public var id: UUID?
@@ -15,11 +15,11 @@ extension WorkplaceCheckIn {
     @NSManaged public var focusRating: Int16
     @NSManaged public var stressRating: Int16
     @NSManaged public var sessionNote: String?
-    @NSManaged public var workplace: Workplace?
+    @NSManaged public var workplace: NSManagedObject?
 }
 
 // MARK: - Convenience Properties
-extension WorkplaceCheckIn {
+extension Fathom.WorkplaceCheckIn {
     /// Normalized stress level (0.0 - 1.0)
     var stressLevel: Double {
         Double(stressRating) / 5.0

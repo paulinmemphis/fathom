@@ -10,7 +10,7 @@ struct WorkSessionReflectionView: View {
     @Environment(\.dismiss) var dismiss
 
     // The WorkplaceCheckIn object to update
-    @ObservedObject var checkIn: WorkplaceCheckIn
+    @ObservedObject var checkIn: Fathom.WorkplaceCheckIn
 
     // Reflection data
     @State private var focusRating: Int = 0
@@ -19,7 +19,7 @@ struct WorkSessionReflectionView: View {
 
     private let ratingRange = 1...5
 
-    init(checkIn: WorkplaceCheckIn) {
+    init(checkIn: Fathom.WorkplaceCheckIn) {
         self.checkIn = checkIn
         // Initialize state with defaults until Core Data model is updated
         // TODO: Uncomment when attributes are added to WorkplaceCheckIn entity

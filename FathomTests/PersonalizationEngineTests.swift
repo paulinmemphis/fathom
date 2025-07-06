@@ -1,104 +1,79 @@
 import XCTest
 @testable import Fathom
-import CoreData
 
+@available(iOS 14.0, *)
+@MainActor
 final class PersonalizationEngineTests: XCTestCase {
-    
-    private var engine: PersonalizationEngine!
 
-    override func setUp() async throws {
-        try await super.setUp()
-        engine = PersonalizationEngine.shared
-        await engine.initialize()
+    var personalizationEngine: PersonalizationEngine!
+
+    override func setUpWithError() async throws {
+        try await super.setUpWithError()
+        personalizationEngine = PersonalizationEngine.shared
+        // NOTE: A proper reset of the singleton's state is crucial for test isolation.
+        await personalizationEngine.resetForTesting()
+        try await personalizationEngine.initialize()
     }
 
-    override func tearDown() async throws {
-        engine = nil
-        try await super.tearDown()
+    override func tearDown() {
+        personalizationEngine = nil
+        super.tearDown()
     }
 
-    func testInitialization() async {
-        let role = await engine.getCurrentUserRole()
-        let industry = await engine.getCurrentUserIndustry()
-        let complexity = await engine.getCurrentInsightComplexity()
-        
-        XCTAssertEqual(role, .other)
-        XCTAssertEqual(industry, .other)
-        XCTAssertEqual(complexity, .basic)
+    func testInitialization() {
+        XCTAssertTrue(personalizationEngine.isInitialized)
+        XCTAssertEqual(personalizationEngine.userRole, .other)
+        XCTAssertEqual(personalizationEngine.userIndustry, .other)
+        XCTAssertEqual(personalizationEngine.insightComplexity, .basic)
     }
 
-    func testUpdateUserProfile() async {
-        // Test updating user role
-        await engine.updateUserRole(.developer)
-        var currentRole = await engine.getCurrentUserRole()
-        XCTAssertEqual(currentRole, .developer)
-
-        // Test updating user industry
-        await engine.updateUserIndustry(.technology)
-        var currentIndustry = await engine.getCurrentUserIndustry()
-        XCTAssertEqual(currentIndustry, .technology)
-
-        // Test updating insight complexity
-        await engine.updateInsightComplexity(.advanced)
-        var currentComplexity = await engine.getCurrentInsightComplexity()
-        XCTAssertEqual(currentComplexity, .advanced)
+    func testSetUserProfile() async throws {
+        try await personalizationEngine.setUserProfile(role: .developer, industry: .technology)
+        XCTAssertEqual(personalizationEngine.userRole, .developer)
+        XCTAssertEqual(personalizationEngine.userIndustry, .technology)
     }
-    
-    func testUserInteractionTracking() async {
-        let insightType = InsightType.trend
-        
-        // Ensure preference is at default state
-        var initialPref = await engine.getPreference(for: insightType)
-        XCTAssertEqual(initialPref.viewCount, 0)
-        XCTAssertEqual(initialPref.dismissalCount, 0)
-        XCTAssertEqual(initialPref.actionCount, 0)
 
-        // Simulate user viewing the insight
-        await engine.trackInteraction(for: insightType, action: .viewed)
-        var afterViewPref = await engine.getPreference(for: insightType)
-        XCTAssertEqual(afterViewPref.viewCount, 1)
-
-        // Simulate user taking action
-        await engine.trackInteraction(for: insightType, action: .actionTaken)
-        var afterActionPref = await engine.getPreference(for: insightType)
-        XCTAssertEqual(afterActionPref.actionCount, 1)
-
-        // Simulate user dismissing the insight
-        await engine.trackInteraction(for: insightType, action: .dismissed)
-        var afterDismissalPref = await engine.getPreference(for: insightType)
-        XCTAssertEqual(afterDismissalPref.dismissalCount, 1)
+    func testSetInsightComplexity() async throws {
+        try await personalizationEngine.setInsightComplexity(to: .advanced)
+        XCTAssertEqual(personalizationEngine.insightComplexity, .advanced)
     }
-    
-    func testContextualTriggerProcessing() async {
-        let context = PersistenceController.preview.container.viewContext
-        let checkIn = WorkplaceCheckIn(context: context)
-        checkIn.stressRating = 4.5 // High stress
-        checkIn.checkOutTime = Date()
-        checkIn.checkInTime = Date().addingTimeInterval(-3600)
 
-        let notificationContext = NotificationContext(stressLevel: checkIn.stressRating)
+    func testRecordInteraction() async throws {
+        let insightType = InsightType.suggestion
         
-        // Get the trigger we expect to fire
-        let triggers = await engine.getContextualTriggers()
-        guard let highStressTrigger = triggers.first(where: { $0.type == .highStress }) else {
-            XCTFail("High stress trigger not found in default set.")
-            return
-        }
-        
-        // Ensure it hasn't been triggered recently
-        XCTAssertTrue(highStressTrigger.canTrigger, "Expected trigger to be available.")
+        let initialPreference = await personalizationEngine.getPreference(for: insightType)
 
-        // Process the check-in
-        await engine.processCheckInForContextualTriggers(checkIn: checkIn, with: notificationContext)
+        try await personalizationEngine.recordInteraction(for: insightType, action: .viewed)
+        var preference = await personalizationEngine.getPreference(for: insightType)
+        XCTAssertGreaterThan(preference.score, initialPreference.score, "Score should increase after viewing")
+
+        let scoreAfterViewing = preference.score
+        try await personalizationEngine.recordInteraction(for: insightType, action: .actionTaken)
+        preference = await personalizationEngine.getPreference(for: insightType)
+        XCTAssertGreaterThan(preference.score, scoreAfterViewing, "Score should increase after action")
+
+        let scoreAfterAction = preference.score
+        try await personalizationEngine.recordInteraction(for: insightType, action: .dismissed)
+        preference = await personalizationEngine.getPreference(for: insightType)
+        XCTAssertLessThan(preference.score, scoreAfterAction, "Score should decrease after dismissing")
+    }
+
+    func testEvaluateContextualTriggers() async throws {
+        // Setup a high-stress check-in
+        let checkInData = WorkplaceCheckInData(
+            id: UUID(),
+            timestamp: Date(),
+            stressLevel: 5,
+            focusLevel: 2,
+            energyLevel: 2,
+            progress: "High stress test",
+            sentimentScore: -0.9
+        )
+
+        // The engine should evaluate this and identify a trigger
+        let triggeredNotification = await personalizationEngine.evaluateContextualTriggers(for: checkInData)
         
-        // Verify that the trigger's lastTriggered date has been updated
-        let updatedTriggers = await engine.getContextualTriggers()
-        guard let updatedHighStressTrigger = updatedTriggers.first(where: { $0.id == highStressTrigger.id }) else {
-            XCTFail("High stress trigger not found after processing.")
-            return
-        }
-        
-        XCTAssertNotNil(updatedHighStressTrigger.lastTriggered, "lastTriggered date should be set after firing.")
-        XCTAssertFalse(updatedHighStressTrigger.canTrigger, "Trigger should be on cooldown after firing.")
+        XCTAssertNotNil(triggeredNotification, "A notification should be triggered for high stress")
+        XCTAssertEqual(triggeredNotification?.title, "Mindful Moment Suggested")
     }
 }

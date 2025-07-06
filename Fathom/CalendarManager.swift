@@ -21,11 +21,29 @@ final class CalendarManager: ObservableObject {
     @Published var hasCalendarAccess = false
 
     func requestAccess(completion: @escaping (Bool) -> Void) {
-        let eventStore = self.eventStore
-        eventStore.requestAccess(to: .event) { granted, error in
-            DispatchQueue.main.async {
-                self.hasCalendarAccess = granted
-                completion(granted)
+        if #available(iOS 17.0, *) {
+            let eventStore = self.eventStore // Capture for use in background task
+            Task {
+                do {
+                    let granted = try await eventStore.requestFullAccessToEvents()
+                    await MainActor.run {
+                        self.hasCalendarAccess = granted
+                        completion(granted)
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.hasCalendarAccess = false
+                        completion(false)
+                    }
+                }
+            }
+        } else {
+            // Fallback on earlier versions
+            eventStore.requestAccess(to: .event) { granted, error in
+                DispatchQueue.main.async {
+                    self.hasCalendarAccess = granted
+                    completion(granted)
+                }
             }
         }
     }

@@ -24,7 +24,7 @@ enum GoalType: String, CaseIterable {
     case reflectionFrequency = "Reflection Frequency"
 }
 
-struct UserGoal: Identifiable {
+struct UserGoalData: Identifiable, Sendable {
     let id = UUID()
     let type: GoalType
     let category: GoalCategory
@@ -49,9 +49,9 @@ struct UserGoal: Identifiable {
 
 @MainActor
 class UserGoalsManager: ObservableObject {
-    nonisolated(unsafe) static let shared = UserGoalsManager()
+    static let shared = UserGoalsManager()
     
-    @Published var goals: [UserGoal] = []
+    @Published var goals: [UserGoalData] = []
     
     nonisolated private init() {
         Task { @MainActor in
@@ -61,7 +61,7 @@ class UserGoalsManager: ObservableObject {
     
     private func loadDefaultGoals() {
         goals = [
-            UserGoal(
+            UserGoalData(
                 type: .dailyWorkHours,
                 category: .workLifeBalance,
                 title: "Healthy Work Hours",
@@ -73,7 +73,7 @@ class UserGoalsManager: ObservableObject {
                 createdAt: Date(),
                 targetDate: nil
             ),
-            UserGoal(
+            UserGoalData(
                 type: .weeklyBreathingMinutes,
                 category: .wellness,
                 title: "Weekly Breathing Practice",
@@ -85,7 +85,7 @@ class UserGoalsManager: ObservableObject {
                 createdAt: Date(),
                 targetDate: nil
             ),
-            UserGoal(
+            UserGoalData(
                 type: .dailyFocusScore,
                 category: .focus,
                 title: "Daily Focus Target",
@@ -102,7 +102,7 @@ class UserGoalsManager: ObservableObject {
     
     func updateGoalProgress(type: GoalType, value: Double) {
         if let index = goals.firstIndex(where: { $0.type == type && $0.isActive }) {
-            let updatedGoal = UserGoal(
+            let updatedGoal = UserGoalData(
                 type: goals[index].type,
                 category: goals[index].category,
                 title: goals[index].title,

@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreData
+import Combine
+@preconcurrency import EventKit
 
 struct UserProgressView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -275,6 +277,8 @@ struct UserProgressView: View {
     }
     
     // MARK: - Detailed Insights Section
+    @State private var showingTaskScheduler = false
+
     private var detailedInsightsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Detailed Insights")
@@ -286,23 +290,29 @@ struct UserProgressView: View {
                     icon: "lightbulb.fill",
                     title: "Productivity Pattern",
                     description: "Your productivity peaks between 2-4 PM. Consider scheduling important tasks during this window.",
-                    action: "Schedule Tasks"
+                    action: "Schedule Tasks",
+                    onAction: { showingTaskScheduler = true }
                 )
                 
                 DetailedInsightCard(
                     icon: "moon.fill",
                     title: "Rest Recommendation",
                     description: "You've been working long hours. Consider taking a 15-minute break every 2 hours.",
-                    action: "Set Reminders"
+                    action: "Set Reminders",
+                    onAction: { /* TODO: Implement Set Reminders */ }
                 )
                 
                 DetailedInsightCard(
                     icon: "figure.walk",
                     title: "Movement Suggestion",
                     description: "Your focus improves after short walks. Try a 5-minute walk between tasks.",
-                    action: "Plan Walks"
+                    action: "Plan Walks",
+                    onAction: { /* TODO: Implement Plan Walks */ }
                 )
             }
+        }
+        .sheet(isPresented: $showingTaskScheduler) {
+            TaskSchedulingSheet()
         }
     }
     
@@ -559,10 +569,10 @@ struct PersonalizationStatusCard: View {
         .padding(16)
         .background(Color(.systemGray6))
         .cornerRadius(12)
-        .task {
-            complexity = await personalizationEngine.getCurrentInsightComplexity()
-            role = await personalizationEngine.getCurrentUserRole()
-            industry = await personalizationEngine.getCurrentUserIndustry()
+        .onAppear {
+            self.complexity = personalizationEngine.insightComplexity
+            self.role = personalizationEngine.userRole
+            self.industry = personalizationEngine.userIndustry
         }
     }
 }
@@ -630,41 +640,24 @@ struct ProgressChartCard: View {
     let value: String
     let progress: Double
     let color: Color
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
                 Spacer()
-                
                 Text(value)
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(color)
             }
-            
-            VStack(spacing: 4) {
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(height: 4)
-                    
-                    Rectangle()
-                        .fill(color)
-                        .frame(width: CGFloat(progress) * 150, height: 4)
-                }
-                .frame(width: 150)
-                .cornerRadius(2)
-                
-                Text("Progress")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+            ProgressView(value: progress)
+                .progressViewStyle(LinearProgressViewStyle(tint: color))
+                .frame(height: 4)
         }
-        .padding(16)
+        .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
@@ -701,6 +694,7 @@ struct DetailedInsightCard: View {
     let title: String
     let description: String
     let action: String
+    let onAction: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -722,7 +716,7 @@ struct DetailedInsightCard: View {
                 .multilineTextAlignment(.leading)
             
             Button(action) {
-                // Handle action
+                onAction()
             }
             .font(.caption)
             .foregroundColor(.blue)
@@ -815,6 +809,578 @@ struct AchievementBadge: View {
         .frame(width: 60, height: 60)
     }
 }
+
+@MainActor
+final class EventKitManager: ObservableObject {
+    static let shared = EventKitManager()
+    @Published var hasAccess: Bool = false
+    @Published var reminderLists: [EKCalendar] = []
+    @Published var fetchedReminders: [EKReminder] = []
+
+    private let eventStore = EKEventStore()
+    private let queue = DispatchQueue(label: "com.fathom.eventkit-manager")
+    
+    enum EventKitError: Error {
+        case accessDenied
+        case operationFailed
+    }
+
+    init() {
+        Task {
+            await checkAccess()
+        }
+    }
+
+    func checkAccess() async {
+        let status = EKEventStore.authorizationStatus(for: .reminder)
+        var hasAccess = false
+        if #available(iOS 17.0, *) {
+            hasAccess = (status == .fullAccess || status == .writeOnly)
+        } else {
+            hasAccess = (status == .authorized)
+        }
+        
+        self.hasAccess = hasAccess
+        if hasAccess {
+            await self.loadReminderLists()
+        }
+    }
+
+    func requestAccess() async -> Bool {
+        let granted: Bool
+        if #available(iOS 17.0, *) {
+            do {
+                granted = try await eventStore.requestFullAccessToReminders()
+            } catch {
+                print("Failed to request reminder access: \(error)")
+                granted = false
+            }
+        } else {
+            let eventStore = self.eventStore // Capture before background
+            granted = await withCheckedContinuation { continuation in
+                queue.async {
+                    eventStore.requestAccess(to: .reminder) { granted, error in
+                        if let error = error {
+                            print("Failed to request reminder access: \(error)")
+                        }
+                        continuation.resume(returning: granted)
+                    }
+                }
+            }
+        }
+        
+        self.hasAccess = granted
+        if granted {
+            await self.loadReminderLists()
+        }
+        return granted
+    }
+
+    private func loadReminderLists() async {
+        guard self.hasAccess else { return }
+        
+        let eventStore = self.eventStore // Capture before background
+        let calendars = await withCheckedContinuation { (continuation: CheckedContinuation<[EKCalendar], Never>) in
+            queue.async {
+                let cals = eventStore.calendars(for: .reminder)
+                continuation.resume(returning: cals)
+            }
+        }
+        self.reminderLists = calendars
+    }
+
+    func addReminder(title: String, due: Date, notes: String?, recurrenceRule: EKRecurrenceRule?, list: EKCalendar?) async throws {
+        guard self.hasAccess else { throw EventKitError.accessDenied }
+        
+        let eventStore = self.eventStore // Capture before background
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.async {
+                let reminder = EKReminder(eventStore: eventStore)
+                reminder.title = title
+                reminder.calendar = list ?? eventStore.defaultCalendarForNewReminders()
+                reminder.dueDateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: due)
+                reminder.notes = notes
+                if let recurrenceRule = recurrenceRule {
+                    reminder.addRecurrenceRule(recurrenceRule)
+                }
+
+                do {
+                    try eventStore.save(reminder, commit: true)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
+    func save(reminder: EKReminder) async throws {
+        let eventStore = self.eventStore // Capture before background
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.async {
+                do {
+                    try eventStore.save(reminder, commit: true)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
+    func complete(reminder: EKReminder) async throws {
+        let eventStore = self.eventStore // Capture before background
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.async {
+                reminder.isCompleted = true
+                do {
+                    try eventStore.save(reminder, commit: true)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func fetchReminders() async {
+        guard self.hasAccess else {
+            self.fetchedReminders = []
+            return
+        }
+
+        let eventStore = self.eventStore // Capture for use in background
+
+        // Fetch reminder IDENTIFIERS on the background queue.
+        let reminderIDs: [String] = await withCheckedContinuation { continuation in
+            queue.async {
+                let predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
+                eventStore.fetchReminders(matching: predicate) { fetchedReminders in
+                    let ids = fetchedReminders?.map { $0.calendarItemIdentifier } ?? []
+                    continuation.resume(returning: ids) // Return [String], which is Sendable
+                }
+            }
+        }
+
+        // Now on the MainActor, use the IDs to get the full objects.
+        let reminders = reminderIDs.compactMap { eventStore.calendarItem(withIdentifier: $0) as? EKReminder }
+        self.fetchedReminders = reminders
+    }
+}
+
+enum BannerType {
+    case success
+    case error
+}
+
+struct BannerView: View {
+    let message: String
+    let type: BannerType
+
+    var body: some View {
+        HStack {
+            Image(systemName: type == .success ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                .foregroundColor(type == .success ? .green : .red)
+            Text(message)
+                .foregroundColor(.primary)
+        }
+        .padding()
+        .background(Color(UIColor.systemBackground))
+        .cornerRadius(10)
+        .shadow(radius: 5)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+}
+
+struct TaskSchedulingSheet: View {
+    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @State private var taskTitle: String = ""
+    @State private var scheduledTime: Date = Date()
+    @State private var notes: String = ""
+    @State private var isRecurring = false
+    @State private var recurrenceFrequency: EKRecurrenceFrequency = .daily
+    @State private var recurrenceInterval: Int = 1
+    @State private var saveToReminders = false
+    
+    @State private var isSaving = false
+    @State private var showSaveSuccessBanner = false
+    @State private var showSaveErrorBanner = false
+    @State private var showRemindersDeniedAlert = false
+    
+    @State private var selectedReminderList: EKCalendar?
+    @ObservedObject private var eventKitManager = EventKitManager.shared
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Task Details")) {
+                    TextField("Task Title", text: $taskTitle)
+                    DatePicker("Scheduled Time", selection: $scheduledTime, displayedComponents: [.date, .hourAndMinute])
+                    TextField("Notes (Optional)", text: $notes)
+                }
+
+                recurrenceSection
+
+                saveDestinationSection
+            }
+            .navigationTitle("Schedule Task")
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Save") {
+                    saveTask()
+                }
+                .disabled(taskTitle.isEmpty || isSaving)
+            )
+            .overlay(
+                Group {
+                    if showSaveSuccessBanner {
+                        BannerView(message: "Task saved successfully!", type: .success)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    showSaveSuccessBanner = false
+                                    presentationMode.wrappedValue.dismiss()
+                                }
+                            }
+                    }
+                    if showSaveErrorBanner {
+                        BannerView(message: "Failed to save task.", type: .error)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    showSaveErrorBanner = false
+                                }
+                            }
+                    }
+                }
+                .animation(.easeInOut, value: showSaveSuccessBanner || showSaveErrorBanner)
+            )
+            .alert("Access Denied", isPresented: $showRemindersDeniedAlert) {
+                Button("Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Please enable Reminders access in Settings to save tasks.")
+            }
+        }
+    }
+
+    private var recurrenceSection: some View {
+        Section(header: Text("Recurrence")) {
+            Toggle("Recurring Task", isOn: $isRecurring.animation())
+
+            if isRecurring {
+                Picker("Frequency", selection: $recurrenceFrequency) {
+                    Text("Daily").tag(EKRecurrenceFrequency.daily)
+                    Text("Weekly").tag(EKRecurrenceFrequency.weekly)
+                    Text("Monthly").tag(EKRecurrenceFrequency.monthly)
+                    Text("Yearly").tag(EKRecurrenceFrequency.yearly)
+                }
+                .pickerStyle(.segmented)
+
+                Stepper(value: $recurrenceInterval, in: 1...100) {
+                    Text("Every \(recurrenceInterval) \(frequencyString(for: recurrenceFrequency))s")
+                }
+            }
+        }
+    }
+
+    private var saveDestinationSection: some View {
+        Section(header: Text("Save Destination")) {
+            Toggle("Save to Apple Reminders", isOn: $saveToReminders)
+                .onChange(of: saveToReminders) {
+                    if saveToReminders && !eventKitManager.hasAccess {
+                        Task {
+                            await eventKitManager.requestAccess()
+                        }
+                    }
+                }
+
+            if saveToReminders {
+                if eventKitManager.hasAccess {
+                    if eventKitManager.reminderLists.isEmpty {
+                        Text("No reminder lists found.")
+                            .foregroundColor(.secondary)
+                    } else {
+                        Picker("List", selection: $selectedReminderList) {
+                            Text("Default List").tag(nil as EKCalendar?)
+                            ForEach(eventKitManager.reminderLists, id: \.self) { list in
+                                Text(list.title).tag(list as EKCalendar?)
+                            }
+                        }
+                        .onAppear {
+                            if selectedReminderList == nil {
+                                selectedReminderList = eventKitManager.reminderLists.first
+                            }
+                        }
+                    }
+                } else {
+                    Text("Enable Reminders access to select a list.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private func saveTask() {
+        isSaving = true
+        
+        Task {
+            defer { isSaving = false }
+            
+            if saveToReminders {
+                guard eventKitManager.hasAccess else {
+                    showRemindersDeniedAlert = true
+                    return
+                }
+
+                let recurrenceRule = isRecurring ? EKRecurrenceRule(recurrenceWith: recurrenceFrequency, interval: recurrenceInterval, end: nil) : nil
+
+                do {
+                    try await eventKitManager.addReminder(title: taskTitle, due: scheduledTime, notes: notes, recurrenceRule: recurrenceRule, list: selectedReminderList)
+                    showSaveSuccessBanner = true
+                } catch {
+                    print("Failed to save reminder: \(error)")
+                    showSaveErrorBanner = true
+                }
+            } else {
+                // Save to Core Data
+                let newItem = Item(context: viewContext)
+                newItem.timestamp = scheduledTime
+                // newItem.title = taskTitle // ERROR: 'Item' has no 'title' property.
+                // To add a title, you must edit the Core Data Model file (e.g., Fathom.xcdatamodeld)
+                // and add a 'title' attribute of type String to the 'Item' entity.
+
+                do {
+                    try viewContext.save()
+                    showSaveSuccessBanner = true
+                } catch {
+                    let nsError = error as NSError
+                    print("Unresolved error \(nsError), \(nsError.userInfo)")
+                    showSaveErrorBanner = true
+                }
+            }
+        }
+    }
+
+    private func frequencyString(for frequency: EKRecurrenceFrequency) -> String {
+        switch frequency {
+        case .daily: return "day"
+        case .weekly: return "week"
+        case .monthly: return "month"
+        case .yearly: return "year"
+        @unknown default: return ""
+        }
+    }
+}
+
+
+// MARK: - Scheduled Tasks Section (surfacing scheduled tasks)
+struct ScheduledTasksSection: View {
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
+        animation: .default)
+    private var localTasks: FetchedResults<Item>
+
+    @ObservedObject private var eventKitManager = EventKitManager.shared
+    @State private var showReminders = false
+    @State private var editingReminder: EKReminder? = nil
+    @State private var editingTitle: String = ""
+    @State private var editingNotes: String = ""
+    @State private var showEditSheet = false
+    @State private var showCompleteBanner = false
+    @State private var showEditBanner = false
+    @State private var showErrorBanner = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Scheduled Tasks")
+                    .font(.headline)
+                Spacer()
+                Button(action: {
+                    Task {
+                        let granted = await eventKitManager.requestAccess()
+                        if granted {
+                            await eventKitManager.fetchReminders()
+                            showReminders = true
+                        }
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("Sync")
+                    }
+                }
+            }
+            if !localTasks.isEmpty {
+                ForEach(localTasks) { item in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            // The default 'Item' entity has no title. Displaying placeholder.
+                            Text("Scheduled Task")
+                                .font(.subheadline)
+                        }
+                        Spacer()
+                        if let date = item.timestamp {
+                            Text(date, style: .time)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        Text("Local")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                    }
+                }
+            } else {
+                Text("No scheduled tasks.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            if showReminders {
+                Divider()
+                Text("Apple Reminders")
+                    .font(.headline)
+                ForEach(eventKitManager.fetchedReminders, id: \.self) { reminder in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(reminder.title)
+                                .font(.subheadline)
+                            if let notes = reminder.notes, !notes.isEmpty {
+                                Text(notes).font(.caption).foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if let due = reminder.dueDateComponents?.date {
+                            Text(due, style: .time)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        Text("Reminders")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                    }
+                    .contextMenu {
+                        Button(action: {
+                            markReminderCompleted(reminder)
+                        }) {
+                            Label("Mark Completed", systemImage: "checkmark.circle")
+                        }
+                        Button(action: {
+                            beginEdit(reminder)
+                        }) {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .sheet(isPresented: $showEditSheet) {
+            NavigationView {
+                Form {
+                    Section(header: Text("Title")) {
+                        TextField("Title", text: $editingTitle)
+                    }
+                    Section(header: Text("Notes")) {
+                        TextField("Notes", text: $editingNotes)
+                    }
+                }
+                .navigationBarTitle("Edit Reminder", displayMode: .inline)
+                .navigationBarItems(leading: Button("Cancel") {
+                    showEditSheet = false
+                }, trailing: Button("Save") {
+                    saveEdit()
+                })
+            }
+        }
+        .overlay(
+            VStack {
+                if showCompleteBanner {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        Text("Marked as completed!")
+                    }
+                    .padding()
+                    .background(Color.green.opacity(0.2))
+                    .cornerRadius(10)
+                    .transition(.move(edge: .top))
+                }
+                if showEditBanner {
+                    HStack {
+                        Image(systemName: "pencil.circle.fill").foregroundColor(.blue)
+                        Text("Reminder updated!")
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.2))
+                    .cornerRadius(10)
+                    .transition(.move(edge: .top))
+                }
+                if showErrorBanner {
+                    HStack {
+                        Image(systemName: "xmark.octagon.fill").foregroundColor(.red)
+                        Text("Operation failed.")
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.2))
+                    .cornerRadius(10)
+                    .transition(.move(edge: .top))
+                }
+                Spacer()
+            }
+            .animation(.easeInOut, value: showCompleteBanner || showEditBanner || showErrorBanner)
+        )
+    }
+    
+    private func markReminderCompleted(_ reminder: EKReminder) {
+        Task {
+            do {
+                try await eventKitManager.complete(reminder: reminder)
+                showCompleteBanner = true
+                await eventKitManager.fetchReminders()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCompleteBanner = false }
+            } catch {
+                showErrorBanner = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showErrorBanner = false }
+            }
+        }
+    }
+    
+    private func beginEdit(_ reminder: EKReminder) {
+        editingReminder = reminder
+        editingTitle = reminder.title
+        editingNotes = reminder.notes ?? ""
+        showEditSheet = true
+    }
+    
+    private func saveEdit() {
+        guard let reminder = editingReminder else { return }
+        reminder.title = editingTitle
+        reminder.notes = editingNotes
+        
+        Task {
+            do {
+                try await eventKitManager.save(reminder: reminder)
+                showEditBanner = true
+                await eventKitManager.fetchReminders()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showEditBanner = false }
+            } catch {
+                showErrorBanner = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showErrorBanner = false }
+            }
+        }
+        showEditSheet = false
+    }
+}
+
 
 // MARK: - Preview
 

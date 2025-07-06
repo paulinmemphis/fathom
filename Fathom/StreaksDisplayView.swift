@@ -75,11 +75,5 @@ struct StreaksDisplayView_Previews: PreviewProvider {
         // For a simple preview, it might just show 0s if not configured.
         StreaksDisplayView()
             .padding()
-            .onAppear {
-                // Mock data for preview if UserStatsManager isn't fully set up for previews
-                let manager = UserStatsManager.shared
-                // manager.currentWorkSessionStreak = 5 // Example
-                // manager.longestWorkSessionStreak = 10 // Example
-            }
     }
 }

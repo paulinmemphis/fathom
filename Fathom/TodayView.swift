@@ -171,7 +171,7 @@ struct TodayView: View {
                         .font(.title3)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(workplace.name ?? "Unknown Workplace")
+                        Text((workplace as? Workplace)?.name ?? "Unknown Workplace")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
@@ -500,7 +500,7 @@ struct TodayView: View {
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
         
         // Fetch today's check-ins using Core Data
-        let request: NSFetchRequest<WorkplaceCheckIn> = WorkplaceCheckIn.fetchRequest()
+        let request: NSFetchRequest<Fathom.WorkplaceCheckIn> = Fathom.WorkplaceCheckIn.fetchRequest()
         request.predicate = NSPredicate(format: "checkInTime >= %@ AND checkInTime < %@", today as NSDate, tomorrow as NSDate)
         
         let todayCheckIns = (try? viewContext.fetch(request)) ?? []

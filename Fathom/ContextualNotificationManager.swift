@@ -40,7 +40,7 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
     
     // MARK: - Contextual Notifications
     
-    func scheduleContextualNotification(for trigger: ContextualTrigger, context: NotificationContext) {
+    func scheduleContextualNotification(for trigger: ContextualTrigger, context: WorkplaceCheckInData) {
         guard notificationPermissionGranted else { return }
         
         let content = UNMutableNotificationContent()
@@ -187,7 +187,7 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
     
     // MARK: - Notification Content Generation
     
-    private func getContextualTitle(for trigger: ContextualTrigger, context: NotificationContext) -> String {
+    private func getContextualTitle(for trigger: ContextualTrigger, context: WorkplaceCheckInData) -> String {
         switch trigger.type {
         case .highStress:
             return "High Stress Detected"
@@ -202,7 +202,7 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         }
     }
     
-    private func getContextualBody(for trigger: ContextualTrigger, context: NotificationContext) -> String {
+    private func getContextualBody(for trigger: ContextualTrigger, context: WorkplaceCheckInData) -> String {
         switch trigger.type {
         case .highStress:
             return "Consider taking a breathing break or short walk. Your stress levels have been elevated."

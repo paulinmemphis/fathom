@@ -4,7 +4,8 @@ import NaturalLanguage
 
 // MARK: - Insight Data Structures
 
-struct Insight: Identifiable, Hashable {
+struct AppInsight: Identifiable, Hashable {
+
     let id = UUID()
     var message: String
     var type: InsightType
@@ -18,26 +19,12 @@ struct Insight: Identifiable, Hashable {
         hasher.combine(id)
     }
 
-    static func == (lhs: Insight, rhs: Insight) -> Bool {
+    static func == (lhs: AppInsight, rhs: AppInsight) -> Bool {
         lhs.id == rhs.id
     }
 }
 
-enum InsightType: String, CaseIterable, Codable {
-    case observation = "Observation"
-    case question = "Question"
-    case suggestion = "Suggestion"
-    case affirmation = "Affirmation"
-    case alert = "Alert" // For more critical patterns
-    case prediction = "Prediction" // For forecasting insights
-    case anomaly = "Anomaly" // For unusual pattern detection
-    case warning = "Warning"
-    case celebration = "Celebration"
-    case trend = "Trend"
-    case correlation = "Correlation"
-    case goalProgress = "Goal Progress"
-    case workplaceSpecific = "Workplace Specific"
-}
+
 
 // MARK: - Phase 2 Algorithmic Data Structures
 
@@ -166,8 +153,8 @@ class InsightEngine {
         return messages.randomElement() ?? messages.first ?? ""
     }
 
-    func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoal] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [Insight] {
-        var generatedInsights: [Insight] = []
+        func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoal] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [AppInsight] {
+                var generatedInsights: [AppInsight] = []
 
         // MARK: - Phase 2: Update Adaptive Thresholds
         updateAdaptiveThresholds(checkIns: checkIns, breathingLogs: breathingLogs)
@@ -207,25 +194,27 @@ class InsightEngine {
             
             // Generate predictive insights
             if let prediction = predictTrend(values: workHours) {
-                var insight = Insight(
+                let insight = AppInsight(
                     message: "📈 Predicted work pattern: Your work hours trend is \(prediction.trendDirection == TrendDirection.increasing ? "increasing" : prediction.trendDirection == TrendDirection.decreasing ? "decreasing" : "stable"). Expected average for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue)) hours.",
                     type: .prediction,
-                    priority: 2
+                    priority: 2,
+                    confidence: confidence.getConfidenceScore(),
+                    isAnomaly: false,
+                    prediction: prediction
                 )
-                insight.confidence = confidence.getConfidenceScore()
-                insight.prediction = prediction
                 generatedInsights.append(insight)
             }
             
             // Flag anomalous sessions
             for (index, isAnomaly) in anomalies.enumerated() where isAnomaly {
-                var insight = Insight(
+                let insight = AppInsight(
                     message: "⚠️ Unusual work session detected: \(String(format: "%.1f", workHours[index])) hours - significantly different from your typical pattern.",
                     type: .anomaly,
-                    priority: 3
+                    priority: 3,
+                    confidence: confidence.getConfidenceScore(),
+                    isAnomaly: true,
+                    prediction: nil
                 )
-                insight.confidence = confidence.getConfidenceScore()
-                insight.isAnomaly = true
                 generatedInsights.append(insight)
             }
         }
@@ -241,7 +230,7 @@ class InsightEngine {
             let confidence = calculateConfidence(sampleSize: stressRatings.count, variance: variance)
             
             if highStressCount > stressRatings.count / 2 {
-                var insight = Insight(
+                var insight = AppInsight(
                     message: "🔍 Adaptive Analysis: Your stress threshold has been personalized to \(String(format: "%.1f", adaptiveStressThreshold)). Recent pattern shows elevated stress in \(highStressCount)/\(stressRatings.count) sessions.",
                     type: .observation,
                     priority: 2
@@ -253,12 +242,12 @@ class InsightEngine {
         
         if !focusRatings.isEmpty {
             let adaptiveFocusThreshold = adaptiveThresholds["lowFocus"]?.currentValue ?? 2.0
-            let lowFocusCount = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
+            _ = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
             let variance = focusRatings.map { pow($0 - focusRatings.reduce(0, +) / Double(focusRatings.count), 2) }.reduce(0, +) / Double(focusRatings.count - 1)
             let confidence = calculateConfidence(sampleSize: focusRatings.count, variance: variance)
             
             if let prediction = predictTrend(values: focusRatings) {
-                var insight = Insight(
+                var insight = AppInsight(
                     message: "🎯 Focus Forecast: Your focus trend is \(prediction.trendDirection == .increasing ? "improving" : prediction.trendDirection == .decreasing ? "declining" : "stable"). Predicted focus level for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue))/5.",
                     type: .prediction,
                     priority: 2
@@ -285,19 +274,19 @@ class InsightEngine {
         }
 
         // Filter data for the relevant periods
-        let previousPeriodBreathingLogs = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
+        _ = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
         let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
 
         // Analyze sentiment for both journal entries and session notes
-        var sentimentInsights: [Insight] = []
+        var sentimentInsights: [AppInsight] = []
         
         // Journal entries sentiment analysis
         for entry in currentPeriodJournalEntries {
             let sentiment = sentimentAnalysis(for: entry.text)
             if sentiment > 0.3 {
-                sentimentInsights.append(Insight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
+                sentimentInsights.append(AppInsight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
             } else if sentiment < -0.3 {
-                sentimentInsights.append(Insight(message: "Your journal entry '\(entry.title)' reflects some challenges. Would you like to explore what's been difficult?", type: .question, priority: 3))
+                sentimentInsights.append(AppInsight(message: "Your journal entry '\(entry.title)' reflects some challenges. Would you like to explore what's been difficult?", type: .question, priority: 3))
             }
         }
         
@@ -317,9 +306,9 @@ class InsightEngine {
         
         // Generate insights based on session note sentiment patterns
         if positiveSessions > negativeSessions && positiveSessions >= 2 {
-            sentimentInsights.append(Insight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
+            sentimentInsights.append(AppInsight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
         } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
-            sentimentInsights.append(Insight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
+            sentimentInsights.append(AppInsight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
         }
 
         generatedInsights.append(contentsOf: sentimentInsights)
@@ -336,7 +325,7 @@ class InsightEngine {
         let totalHistoricalWorkHours = historicalCheckInsForAverage.reduce(0.0) { total, checkIn in
             return total + (Double(checkIn.sessionDuration) / 3600.0)
         }
-        let averageWeeklyWorkHoursHistorical = historicalWeeksForAverage > 0 ? totalHistoricalWorkHours / Double(historicalWeeksForAverage) : 0.0
+        let averageWeeklyWorkHoursHistorical = totalHistoricalWorkHours / Double(historicalWeeksForAverage)
         let workHoursThisPeriodFormatted = String(format: "%.1f", totalWorkHoursThisPeriod)
 
         // Use adaptive threshold for max weekly hours
@@ -350,20 +339,20 @@ class InsightEngine {
             if significantlyAboveAverage || (averageWeeklyWorkHoursHistorical == 0 && totalWorkHoursThisPeriod > adaptiveMaxWeeklyHours) {
                 // Condition for high workload
                 if numberOfBreathingSessionsThisPeriod < minBreathingSessionsForHighWorkload {
-                    var insight = Insight(message: "You've logged \(workHoursThisPeriodFormatted) hours in the last \(days) days, which is more than usual for you. We also noticed only \(numberOfBreathingSessionsThisPeriod) breathing session(s). Mindful breaks are key during intense periods. Consider one?", type: .suggestion, priority: 10)
+                    var insight = AppInsight(message: "You've logged \(workHoursThisPeriodFormatted) hours in the last \(days) days, which is more than usual for you. We also noticed only \(numberOfBreathingSessionsThisPeriod) breathing session(s). Mindful breaks are key during intense periods. Consider one?", type: .suggestion, priority: 10)
                     insight.confidence = currentPeriodCheckIns.count >= 3 ? 0.8 : 0.5
                     generatedInsights.append(insight)
                 } else {
-                    var insight = Insight(message: "You've worked \(workHoursThisPeriodFormatted) hours in the last \(days) days—a significant amount. It's good to see you've included \(numberOfBreathingSessionsThisPeriod) breathing exercises. How is this balance feeling?", type: .question, priority: 5)
+                    var insight = AppInsight(message: "You've worked \(workHoursThisPeriodFormatted) hours in the last \(days) days—a significant amount. It's good to see you've included \(numberOfBreathingSessionsThisPeriod) breathing exercises. How is this balance feeling?", type: .question, priority: 5)
                     insight.confidence = currentPeriodCheckIns.count >= 3 ? 0.8 : 0.5
                     generatedInsights.append(insight)
                 }
             } else if significantlyBelowAverage {
-                var insight = Insight(message: "Your work hours this past period (\(workHoursThisPeriodFormatted) hrs) were lower than your recent average. You also completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this change in pace affect you?", type: .question, priority: 2)
+                var insight = AppInsight(message: "Your work hours this past period (\(workHoursThisPeriodFormatted) hrs) were lower than your recent average. You also completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this change in pace affect you?", type: .question, priority: 2)
                 insight.confidence = 0.7
                 generatedInsights.append(insight)
             } else {
-                var insight = Insight(message: "This past period, you logged \(workHoursThisPeriodFormatted) work hours and completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this rhythm feel for you?", type: .question, priority: 2)
+                var insight = AppInsight(message: "This past period, you logged \(workHoursThisPeriodFormatted) work hours and completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this rhythm feel for you?", type: .question, priority: 2)
                 insight.confidence = 0.6
                 generatedInsights.append(insight)
             }
@@ -409,8 +398,8 @@ class InsightEngine {
                                              previousPeriodStartDate: Date, 
                                              previousPeriodEndDate: Date, 
                                              historicalAverageStartDate: Date, 
-                                             historicalAverageEndDate: Date) -> [Insight] {
-        var insights: [Insight] = [] // Added this line
+                                                                                          historicalAverageEndDate: Date) -> [AppInsight] {
+                var insights: [AppInsight] = [] // Added this line
 
     // MARK: - Enhanced Stress/Focus Analysis with Adaptive Thresholds
     // Note: This block was moved from class-level scope into this method.
@@ -429,7 +418,7 @@ class InsightEngine {
         let confidence = self.calculateConfidence(sampleSize: stressRatings.count, variance: variance) // 'self' for clarity
         
         if highStressCount > stressRatings.count / 2 {
-            var insight = Insight(
+            var insight = AppInsight(
                 message: "🔍 Adaptive Analysis: Your stress threshold has been personalized to \(String(format: "%.1f", adaptiveStressThreshold)). Recent pattern shows elevated stress in \(highStressCount)/\(stressRatings.count) sessions.",
                 type: .observation,
                 priority: 2
@@ -441,12 +430,12 @@ class InsightEngine {
     
     if !focusRatings.isEmpty {
         let adaptiveFocusThreshold = self.adaptiveThresholds["lowFocus"]?.currentValue ?? Double(self.lowFocusThreshold)
-        let lowFocusCount = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
+        _ = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
         let variance = focusRatings.count > 1 ? focusRatings.map { pow($0 - focusRatings.reduce(0, +) / Double(focusRatings.count), 2) }.reduce(0, +) / Double(focusRatings.count - 1) : 0.0
         let confidence = self.calculateConfidence(sampleSize: focusRatings.count, variance: variance) // 'self' for clarity
         
         if let prediction = self.predictTrend(values: focusRatings.map { Double($0) }) { // 'self' for clarity, ensure values are Double
-            var insight = Insight(
+            var insight = AppInsight(
                 message: "🎯 Focus Forecast: Your focus trend is \(prediction.trendDirection == TrendDirection.increasing ? "improving" : prediction.trendDirection == TrendDirection.decreasing ? "declining" : "stable"). Predicted focus level for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue))/5.",
                 type: .prediction,
                 priority: 2
@@ -474,19 +463,19 @@ class InsightEngine {
 
     // Filter data for the relevant periods
     // breathingLogs, checkIns are parameters
-    let previousPeriodBreathingLogs = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
+    _ = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
     let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
 
     // Analyze sentiment for both journal entries and session notes
-    var sentimentInsightsContainer: [Insight] = [] // Using a different name to avoid confusion if 'insights' is used differently here
+    var sentimentInsightsContainer: [AppInsight] = [] // Using a different name to avoid confusion if 'insights' is used differently here
     
     // journalEntries is a parameter
     for entry in journalEntries { // Use the passed-in journalEntries
         let sentiment = self.sentimentAnalysis(for: entry.text) // 'self' for clarity
         if sentiment > 0.3 {
-            sentimentInsightsContainer.append(Insight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
+            sentimentInsightsContainer.append(AppInsight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
         } else if sentiment < -0.3 {
-            sentimentInsightsContainer.append(Insight(message: "Your journal entry '\(entry.title)' reflects some challenges. Would you like to explore what's been difficult?", type: .question, priority: 3))
+            sentimentInsightsContainer.append(AppInsight(message: "Your journal entry '\(entry.title)' reflects some challenges. Would you like to explore what's been difficult?", type: .question, priority: 3))
         }
     }
     
@@ -508,9 +497,9 @@ class InsightEngine {
     }
     
     if positiveSessions > negativeSessions && positiveSessions >= 2 {
-        sentimentInsightsContainer.append(Insight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
+        sentimentInsightsContainer.append(AppInsight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
     } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
-        sentimentInsightsContainer.append(Insight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
+        sentimentInsightsContainer.append(AppInsight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
     }
 
     insights.append(contentsOf: sentimentInsightsContainer) // Add collected sentiment insights to the main 'insights' array
@@ -528,7 +517,7 @@ class InsightEngine {
     let totalHistoricalWorkHours = historicalCheckInsForAverage.reduce(0.0) { total, item in
         return total + (Double(item.sessionDuration) / 3600.0)
     }
-    let averageWeeklyWorkHoursHistorical = historicalWeeksForAverage > 0 ? totalHistoricalWorkHours / Double(historicalWeeksForAverage) : 0.0
+    let averageWeeklyWorkHoursHistorical = totalHistoricalWorkHours / Double(historicalWeeksForAverage)
     let workHoursThisPeriodFormatted = String(format: "%.1f", totalWorkHoursThisPeriod)
 
     let adaptiveMaxWeeklyHours = self.adaptiveThresholds["maxWeeklyHours"]?.currentValue ?? self.maxWeeklyHoursThreshold
@@ -539,16 +528,16 @@ class InsightEngine {
 
         if significantlyAboveAverage || (averageWeeklyWorkHoursHistorical == 0 && totalWorkHoursThisPeriod > adaptiveMaxWeeklyHours) {
             if numberOfBreathingSessionsThisPeriod < self.minBreathingSessionsForHighWorkload {
-                var insight = Insight(message: "You've logged \(workHoursThisPeriodFormatted) hours in the last \(days) days, which is more than usual for you. We also noticed only \(numberOfBreathingSessionsThisPeriod) breathing session(s). Mindful breaks are key during intense periods. Consider one?", type: .suggestion, priority: 10)
+                var insight = AppInsight(message: "You've logged \(workHoursThisPeriodFormatted) hours in the last \(days) days, which is more than usual for you. We also noticed only \(numberOfBreathingSessionsThisPeriod) breathing session(s). Mindful breaks are key during intense periods. Consider one?", type: .suggestion, priority: 10)
                 insight.confidence = checkIns.count >= 3 ? 0.8 : 0.5
                 insights.append(insight)
             } else {
-                var insight = Insight(message: "You've worked \(workHoursThisPeriodFormatted) hours in the last \(days) days—a significant amount. It's good to see you've included \(numberOfBreathingSessionsThisPeriod) breathing exercises. How is this balance feeling?", type: .question, priority: 5)
+                var insight = AppInsight(message: "You've worked \(workHoursThisPeriodFormatted) hours in the last \(days) days—a significant amount. It's good to see you've included \(numberOfBreathingSessionsThisPeriod) breathing exercises. How is this balance feeling?", type: .question, priority: 5)
                 insight.confidence = checkIns.count >= 3 ? 0.8 : 0.5
                 insights.append(insight)
             }
         } else if significantlyBelowAverage {
-            var insight = Insight(message: "Your work hours this past period (\(workHoursThisPeriodFormatted) hrs) were lower than your recent average. You also completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this change in pace affect you?", type: .question, priority: 2)
+            var insight = AppInsight(message: "Your work hours this past period (\(workHoursThisPeriodFormatted) hrs) were lower than your recent average. You also completed \(numberOfBreathingSessionsThisPeriod) breathing exercise(s). How did this change in pace affect you?", type: .question, priority: 2)
             insight.confidence = 0.7
             insights.append(insight)
         }
@@ -572,12 +561,12 @@ class InsightEngine {
         let adaptiveHighStressThreshold = self.adaptiveThresholds["highStress"]?.currentValue ?? Double(self.highStressThreshold)
 
         if averageFocus <= adaptiveLowFocusThreshold && checkInsWithReflections.count >= self.minReflectionsForAverageInsight {
-            var insight = Insight(message: "Lately, your average focus rating after work sessions has been around \(String(format: "%.1f", averageFocus))/5. What factors do you think are influencing your concentration?", type: .question, priority: 6)
+            var insight = AppInsight(message: "Lately, your average focus rating after work sessions has been around \(String(format: "%.1f", averageFocus))/5. What factors do you think are influencing your concentration?", type: .question, priority: 6)
             insight.confidence = min(0.9, Double(reflectionCount) / 10.0)
             insights.append(insight)
         }
         if averageStress >= adaptiveHighStressThreshold && checkInsWithReflections.count >= self.minReflectionsForAverageInsight {
-            var insight = Insight(message: "Your average stress rating recently is about \(String(format: "%.1f", averageStress))/5. Remember to utilize mindful moments and breaks. How are you managing stress levels this week?", type: .question, priority: 7)
+            var insight = AppInsight(message: "Your average stress rating recently is about \(String(format: "%.1f", averageStress))/5. Remember to utilize mindful moments and breaks. How are you managing stress levels this week?", type: .question, priority: 7)
             insight.confidence = min(0.9, Double(reflectionCount) / 10.0)
             insights.append(insight)
         }
@@ -589,7 +578,7 @@ class InsightEngine {
     let lowFocusSessionsRule2 = checkIns.filter { $0.focusLevel <= Double(self.lowFocusThreshold) }.count
 
     if highStressSessionsRule2 > checkIns.count / 2 && lowFocusSessionsRule2 > checkIns.count / 2 {
-        insights.append(Insight(message: "Many recent sessions show high stress and low focus. Consider a break or a change of pace.", type: .alert, priority: 9))
+        insights.append(AppInsight(message: "Many recent sessions show high stress and low focus. Consider a break or a change of pace.", type: .alert, priority: 9))
     }
 
     return insights

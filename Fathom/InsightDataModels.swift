@@ -12,8 +12,8 @@ struct CheckInData: Sendable {
     init(from checkIn: WorkplaceCheckIn) {
         self.focusLevel = checkIn.focusLevel
         self.stressLevel = checkIn.stressLevel
-        self.timestamp = checkIn.timestamp ?? Date()
-        self.workplaceName = checkIn.workplace?.name
+        self.timestamp = checkIn.timestamp
+        self.workplaceName = (checkIn.workplace as? Workplace)?.name
         self.sessionDuration = Int32(checkIn.sessionDuration)
         self.sessionNote = checkIn.sessionNote
     }

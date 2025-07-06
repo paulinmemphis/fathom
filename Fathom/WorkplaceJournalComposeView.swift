@@ -118,11 +118,10 @@ struct WorkplaceJournalComposeView: View {
         
         isSaving = true
         
-        let entryToSave: JournalEntry
-        if let existingEntry = entryToEdit {
-            entryToSave = existingEntry // Update existing entry
+        if entryToEdit != nil {
+            // Update existing entry
         } else {
-            entryToSave = JournalEntry(context: viewContext) // Create new entry
+            // Create new entry
             // Commented out to prevent crash due to unrecognized selector
             // entryToSave.id = UUID()
         }

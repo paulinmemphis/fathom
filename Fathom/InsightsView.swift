@@ -10,15 +10,15 @@ struct InsightsView: View {
     
     // FetchRequest for CheckIn entities
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \WorkplaceCheckIn.checkInTime, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \Fathom.WorkplaceCheckIn.checkInTime, ascending: false)],
         animation: .default)
-    private var checkInLogs: FetchedResults<WorkplaceCheckIn>
+    private var checkInLogs: FetchedResults<Fathom.WorkplaceCheckIn>
     
     // FetchRequest for BreathingExercise entities
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \BreathingExercise.completedAt, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \Fathom.BreathingExercise.completedAt, ascending: false)],
         animation: .default)
-    private var breathingLogs: FetchedResults<BreathingExercise>
+    private var breathingLogs: FetchedResults<Fathom.BreathingExercise>
 
     // Access to journal entries
     @StateObject private var journalStore = WorkplaceJournalStore.shared
@@ -26,7 +26,7 @@ struct InsightsView: View {
     // Access to user goals
     @StateObject private var goalsManager = UserGoalsManager.shared
 
-    @State private var insights: [Insight] = []
+    @State private var insights: [AppInsight] = []
     @State private var showingPersonalizationSettings = false // This might be unused if settings are in onboarding
     @State private var interactionHistory: [UUID: (dismissed: Bool, actionTaken: Bool)] = [:]
 
@@ -60,74 +60,22 @@ struct InsightsView: View {
                                 .padding(.horizontal)
                             
                             if insights.isEmpty {
-                                VStack(spacing: 16) {
-                                    UserProgressView()
-                                    Text("Generating personalized insights...")
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure it takes space
+                                EmptyInsightsView()
                             } else {
-                                Group {
-                                    if horizontalSizeClass == .compact {
-                                        LazyVStack(spacing: 16) {
-                                            ForEach(insights) { insight in
-                                                PersonalizedInsightCard(
-                                                    insight: insight,
-                                                    onDismiss: { handleInsightInteraction(insight, dismissed: true, actionTaken: false) },
-                                                    onAction: { handleInsightInteraction(insight, dismissed: false, actionTaken: true) }
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 300, maximum: 400))], spacing: 16) {
-                                            ForEach(insights) { insight in
-                                                PersonalizedInsightCard(
-                                                    insight: insight,
-                                                    onDismiss: { handleInsightInteraction(insight, dismissed: true, actionTaken: false) },
-                                                    onAction: { handleInsightInteraction(insight, dismissed: false, actionTaken: true) }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal)
+                                InsightGridView(insights: insights, horizontalSizeClass: horizontalSizeClass, interactionHandler: handleInsightInteraction)
+                                    .padding(.horizontal)
                             }
                         }
-                        .padding(.vertical) // Add some vertical padding
+                        .padding(.vertical)
                     }
                 } else {
-                    // Paywall for non-Pro users
-                    VStack(spacing: 20) {
-                        Image(systemName: "brain.head.profile")
-                            .font(.system(size: 64))
-                            .foregroundColor(.blue)
-                        
-                        Text("Personalized Insights")
-                            .font(.title)
-                            .fontWeight(.bold)
-                        
-                        Text("Unlock AI-powered, personalized insights that adapt to your unique work patterns and preferences.")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                        
-                        Button("Upgrade to Pro") {
-                            showingPaywall = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
-                    .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 500)
+                    PaywallContent(showingPaywall: $showingPaywall, horizontalSizeClass: horizontalSizeClass)
                 }
             }
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.automatic)
             .onAppear {
                 loadPersonalizedInsights()
-                Task {
-                    userRole = await personalizationEngine.getCurrentUserRole()
-                    userIndustry = await personalizationEngine.getCurrentUserIndustry()
-                    currentComplexity = await personalizationEngine.getCurrentInsightComplexity()
-                }
             }
             .refreshable {
                 loadPersonalizedInsights()
@@ -139,32 +87,43 @@ struct InsightsView: View {
         }
     }
     
+
+    
     private func loadPersonalizedInsights() {
         Task {
-            let checkInsArray = Array(checkInLogs)
-            let breathingArray = Array(breathingLogs)
-            let journalEntriesArray = journalStore.entries
+            // Map Core Data objects to data structs
+            let checkInsData = checkInLogs.map(WorkplaceCheckInData.init(fromMO:))
+            let breathingData = breathingLogs.map(BreathingSessionData.init(fromMO:))
+            let journalData = journalStore.entries.map { WorkplaceJournalEntryData(from: $0) }
             let goalsArray = goalsManager.goals
             
             let generatedInsights = await personalizationEngine.generatePersonalizedInsights(
-                checkIns: checkInsArray,
-                breathingLogs: breathingArray,
-                journalEntries: journalEntriesArray,
+                checkIns: checkInsData,
+                breathingLogs: breathingData,
+                journalEntries: journalData,
                 goals: goalsArray,
                 forLastDays: 7
             )
             
             await MainActor.run {
-                self.insights = generatedInsights.filter { insight in
+                self.insights = generatedInsights.map { AppInsight(message: $0.message, type: $0.type, priority: $0.priority, confidence: $0.confidence) }.filter { insight in
                     !(interactionHistory[insight.id]?.dismissed ?? false)
                 }
+                self.userRole = personalizationEngine.userRole
+                self.userIndustry = personalizationEngine.userIndustry
+                self.currentComplexity = personalizationEngine.insightComplexity
             }
         }
     }
     
-    private func handleInsightInteraction(_ insight: Insight, dismissed: Bool, actionTaken: Bool) {
+    private func handleInsightInteraction(_ insight: AppInsight, dismissed: Bool, actionTaken: Bool) {
         Task {
-            await personalizationEngine.recordInteraction(for: insight.type, action: dismissed ? .dismissed : (actionTaken ? .actionTaken : .viewed))
+            do {
+                try personalizationEngine.recordInteraction(for: insight.type, action: dismissed ? .dismissed : (actionTaken ? .actionTaken : .viewed))
+            } catch {
+                // Handle or log the error appropriately
+                print("Failed to record interaction: \(error.localizedDescription)")
+            }
         }
         interactionHistory[insight.id] = (dismissed: dismissed, actionTaken: actionTaken)
         
@@ -178,6 +137,79 @@ struct InsightsView: View {
         if dismissed {
             insights.removeAll { $0.id == insight.id }
         }
+    }
+}
+
+// MARK: - Extracted Subviews
+
+private struct EmptyInsightsView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            UserProgressView()
+            Text("Generating personalized insights...")
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct InsightGridView: View {
+    let insights: [AppInsight]
+    let horizontalSizeClass: UserInterfaceSizeClass?
+    let interactionHandler: (AppInsight, Bool, Bool) -> Void
+
+    var body: some View {
+        Group {
+            if horizontalSizeClass == .compact {
+                LazyVStack(spacing: 16) {
+                    ForEach(insights) { insight in
+                        PersonalizedInsightCard(
+                            insight: insight,
+                            onDismiss: { interactionHandler(insight, true, false) },
+                            onAction: { interactionHandler(insight, false, true) }
+                        )
+                    }
+                }
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300, maximum: 400))], spacing: 16) {
+                    ForEach(insights) { insight in
+                        PersonalizedInsightCard(
+                            insight: insight,
+                            onDismiss: { interactionHandler(insight, true, false) },
+                            onAction: { interactionHandler(insight, false, true) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct PaywallContent: View {
+    @Binding var showingPaywall: Bool
+    let horizontalSizeClass: UserInterfaceSizeClass?
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 64))
+                .foregroundColor(.blue)
+            
+            Text("Personalized Insights")
+                .font(.title)
+                .fontWeight(.bold)
+            
+            Text("Unlock AI-powered, personalized insights that adapt to your unique work patterns and preferences.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+            
+            Button("Upgrade to Pro") {
+                showingPaywall = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 500)
     }
 }
 
@@ -212,7 +244,7 @@ struct PersonalizationStatusView: View {
 }
 
 struct PersonalizedInsightCard: View {
-    let insight: Insight
+    let insight: AppInsight
     let onDismiss: () -> Void
     let onAction: () -> Void
     

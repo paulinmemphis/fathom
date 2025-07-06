@@ -249,30 +249,25 @@ class SubscriptionManager: ObservableObject {
         }
         
         // Otherwise check for valid subscriptions
-        do {
-            var hasActiveSubscription = false
-            
-            // Get all transaction entries
-            for await result in Transaction.currentEntitlements {
-                // Check if the transaction is verified
-                if case .verified(let transaction) = result {
-                    // Check if this is a subscription and if it's still active
-                    // Note: StoreKit 2 Transaction doesn't have isRevoked property directly
-                    // Instead we check if it's not expired and not revoked via its state
-                    if transaction.productType == .autoRenewable && 
-                       !transaction.isUpgraded && 
-                       transaction.revocationDate == nil {
-                        hasActiveSubscription = true
-                        break
-                    }
+        var hasActiveSubscription = false
+        
+        // Get all transaction entries
+        for await result in Transaction.currentEntitlements {
+            // Check if the transaction is verified
+            if case .verified(let transaction) = result {
+                // Check if this is a subscription and if it's still active
+                // Note: StoreKit 2 Transaction doesn't have isRevoked property directly
+                // Instead we check if it's not expired and not revoked via its state
+                if transaction.productType == .autoRenewable &&
+                   !transaction.isUpgraded &&
+                   transaction.revocationDate == nil {
+                    hasActiveSubscription = true
+                    break
                 }
             }
-            
-            isProUser = hasActiveSubscription
-        } catch {
-            print("Failed to update subscription status: \(error)")
-            isProUser = false
         }
+        
+        isProUser = hasActiveSubscription
     }
     
     private func listenForTransactions() -> Task<Void, Error> {

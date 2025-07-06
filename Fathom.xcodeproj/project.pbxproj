@@ -104,6 +104,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				AppIntents.swift,
+				"GoogleService-Info.plist",
 			);
 			target = DAA6B2002DF8171C00A67351 /* FathomWidgetsExtension */;
 		};
@@ -114,6 +115,20 @@
 			);
 			target = DAA6B1AE2DF813E500A67351 /* Fathom */;
 		};
+		DADCFC042E18D89A0011E90E /* Exceptions for "Fathom" folder in "FathomTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = DAA6B1C22DF813E800A67351 /* FathomTests */;
+		};
+		DADCFC052E18D89A0011E90E /* Exceptions for "Fathom" folder in "FathomUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = DAA6B1CC2DF813E800A67351 /* FathomUITests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -121,6 +136,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				DAA6B1D52DF813E800A67351 /* Exceptions for "Fathom" folder in "Fathom" target */,
+				DADCFC042E18D89A0011E90E /* Exceptions for "Fathom" folder in "FathomTests" target */,
+				DADCFC052E18D89A0011E90E /* Exceptions for "Fathom" folder in "FathomUITests" target */,
 				DAA6B22E2DF8242E00A67351 /* Exceptions for "Fathom" folder in "FathomWidgetsExtension" target */,
 			);
 			path = Fathom;

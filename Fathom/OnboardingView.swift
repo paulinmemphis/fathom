@@ -29,6 +29,7 @@ struct OnboardingView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .automatic))
         .animation(.easeInOut, value: selection)
+        .environmentObject(personalizationEngine)
     }
 }
 
@@ -71,20 +72,7 @@ struct WelcomeStep: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
-                // Feature Carousel
-                TabView(selection: $carouselSelection) {
-                    ForEach(features) { feature in
-                        FeatureCarouselSlideView(item: feature)
-                            .tag(features.firstIndex(where: { $0.id == feature.id }) ?? 0)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .automatic))
-                .frame(height: 280) // Adjust height as needed for content
-                .onReceive(timer) { _ in
-                    withAnimation {
-                        carouselSelection = (carouselSelection + 1) % features.count
-                    }
-                }
+                // featureCarousel // Temporarily disabled for debugging
                 
                 Spacer()
                 Button("Continue") { selection = 1 }
@@ -96,6 +84,22 @@ struct WelcomeStep: View {
         }
         .padding()
     }
+
+//    private var featureCarousel: some View { // Temporarily disabled for debugging
+//        TabView(selection: $carouselSelection) {
+//            ForEach(features.indices, id: \.self) { index in
+//                FeatureCarouselSlideView(item: features[index])
+//                    .tag(index)
+//            }
+//        }
+//        .tabViewStyle(.page(indexDisplayMode: .automatic))
+//        .frame(height: 280) // Adjust height as needed for content
+//        .onReceive(timer) { _ in
+//            withAnimation {
+//                carouselSelection = (carouselSelection + 1) % features.count
+//            }
+//        }
+//    }
 }
 
 struct PersonalizationStep: View {
@@ -144,7 +148,7 @@ struct CompletionStep: View {
     @Binding var isPresented: Bool
     let selectedRole: WorkRole
     let selectedIndustry: WorkIndustry
-    @StateObject private var personalizationEngine = PersonalizationEngine.shared
+    @EnvironmentObject var personalizationEngine: PersonalizationEngine
 
     var body: some View {
         VStack(spacing: 20) {
@@ -171,8 +175,13 @@ struct CompletionStep: View {
                 Spacer()
                 Button("Get Started") {
                     Task {
-                        await personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
-                        await personalizationEngine.savePreferences()
+                        do {
+                            try await personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
+                        } catch {
+                            // Optionally handle or log the error
+                            print("Failed to set user profile during onboarding: \(error)")
+                        }
+                        await personalizationEngine.persistUserPreferences()
                         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                         isPresented = false
                     }

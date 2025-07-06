@@ -39,7 +39,7 @@ struct WorkplaceListView: View {
             WorkplaceEntryView(workplaceToEdit: workplaceToEdit)
                 .environmentObject(subscriptionManager)
         }
-        .sheet(item: $workplaceManager.presentingReflectionSheetForCheckIn) { checkInToReflectOn in
+        .sheet(item: $workplaceManager.presentingReflectionSheetForCheckIn) { (checkInToReflectOn: Fathom.WorkplaceCheckIn) in
             WorkSessionReflectionView(checkIn: checkInToReflectOn)
                 .environment(\.managedObjectContext, workplaceManager.viewContextForSheet())
         }
@@ -111,20 +111,20 @@ struct WorkplaceListView: View {
         Button {
             Task {
                 if let activeCheckIn = workplaceManager.activeCheckIn,
-                   activeCheckIn.workplace == workplace {
+                   activeCheckIn.workplace?.objectID == workplace.objectID {
                     await workplaceManager.checkOut()
                 } else {
                     await workplaceManager.checkIn(to: workplace)
                 }
             }
         } label: {
-            if let activeCheckIn = workplaceManager.activeCheckIn, activeCheckIn.workplace == workplace {
+            if let activeCheckIn = workplaceManager.activeCheckIn, activeCheckIn.workplace?.objectID == workplace.objectID {
                 Label("Check Out", systemImage: "arrow.right.square.fill")
             } else {
                 Label("Check In", systemImage: "arrow.left.square.fill")
             }
         }
-        .tint(workplaceManager.activeCheckIn?.workplace == workplace ? .orange : .green)
+        .tint(workplaceManager.activeCheckIn?.workplace?.objectID == workplace.objectID ? .orange : .green)
     }
     
     /// Swipe action button for deleting a workplace.

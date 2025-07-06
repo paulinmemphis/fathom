@@ -22,10 +22,10 @@ class WorkplaceManager: ObservableObject {
     
     /// Published properties for UI updates
     @Published var workplaces: [Workplace] = []
-    @Published var activeCheckIn: WorkplaceCheckIn?
+    @Published var activeCheckIn: Fathom.WorkplaceCheckIn?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
-    @Published var presentingReflectionSheetForCheckIn: WorkplaceCheckIn? = nil
+    @Published var presentingReflectionSheetForCheckIn: Fathom.WorkplaceCheckIn? = nil
     
     // MARK: - Initialization
     
@@ -123,8 +123,8 @@ class WorkplaceManager: ObservableObject {
             if activeCheckIn == nil {
                 print("Automatic check-in for: \(workplace.name ?? "Unknown")")
                 _ = await checkIn(to: workplace, isAuto: true)
-            } else if activeCheckIn?.workplace != workplace {
-                print("Already checked in to \(activeCheckIn?.workplace?.name ?? "another workplace"). Skipping auto check-in for \(workplace.name ?? "Unknown").")
+            } else if (activeCheckIn?.workplace as? Workplace) != workplace {
+                print("Already checked in to \((activeCheckIn?.workplace as? Workplace)?.name ?? "another workplace"). Skipping auto check-in for \(workplace.name ?? "Unknown").")
             } else {
                 print("Already checked in to \(workplace.name ?? "Unknown"). Skipping duplicate auto check-in.")
             }
@@ -304,7 +304,7 @@ class WorkplaceManager: ObservableObject {
 
         if activeCheckIn != nil {
             errorMessage = "You are already checked in. Please check out first."
-            print("Attempted to check in while already checked in to \(activeCheckIn?.workplace?.name ?? "a workplace").")
+            print("Attempted to check in while already checked in to \((activeCheckIn?.workplace as? Workplace)?.name ?? "a workplace").")
             return false
         }
 
@@ -352,7 +352,7 @@ class WorkplaceManager: ObservableObject {
         do {
             try viewContext.save()
             self.activeCheckIn = nil // Clear the active check-in
-            print("Successfully checked out from \(checkedOutSession.workplace?.name ?? "Unknown") at \(checkedOutSession.checkOutTime!)")
+            print("Successfully checked out from \((checkedOutSession.workplace as? Workplace)?.name ?? "Unknown") at \(checkedOutSession.checkOutTime!)")
             
             // Log work session completion for streaks/achievements
             Task { @MainActor in

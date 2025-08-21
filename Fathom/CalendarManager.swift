@@ -20,7 +20,7 @@ final class CalendarManager: ObservableObject {
     private let eventStore = SafeEventStore().store
     @Published var hasCalendarAccess = false
 
-    func requestAccess(completion: @escaping (Bool) -> Void) {
+    func requestAccess(completion: @escaping @Sendable (Bool) -> Void) {
         if #available(iOS 17.0, *) {
             let eventStore = self.eventStore // Capture for use in background task
             Task {

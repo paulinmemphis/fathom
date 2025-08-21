@@ -24,8 +24,6 @@
 		DAB9DAF32DFA8DB50052C33A /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF22DFA8DB50052C33A /* FirebaseCrashlytics */; };
 		DAB9DAF52DFA8DB50052C33A /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF42DFA8DB50052C33A /* FirebaseDatabase */; };
 		DAB9DAF72DFA8DB50052C33A /* FirebaseDynamicLinks in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF62DFA8DB50052C33A /* FirebaseDynamicLinks */; };
-		DAB9DAF92DFA8DB50052C33A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */; };
-		DAB9DAFB2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */; };
 		DAB9DAFD2DFA8DB50052C33A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */; };
 		DAB9DAFF2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAFE2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community */; };
 		DAB9DB012DFA8DB50052C33A /* FirebaseInAppMessaging-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB002DFA8DB50052C33A /* FirebaseInAppMessaging-Beta */; };
@@ -180,8 +178,6 @@
 				DAB9DAF72DFA8DB50052C33A /* FirebaseDynamicLinks in Frameworks */,
 				DAB9DAE52DFA8DB50052C33A /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
 				DAB9DAED2DFA8DB50052C33A /* FirebaseAuth in Frameworks */,
-				DAB9DAF92DFA8DB50052C33A /* FirebaseFirestore in Frameworks */,
-				DAB9DAFB2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community in Frameworks */,
 				DAB9DB112DFA8DB50052C33A /* FirebaseVertexAI in Frameworks */,
 				DAB9DB012DFA8DB50052C33A /* FirebaseInAppMessaging-Beta in Frameworks */,
 				DAB9DAFF2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community in Frameworks */,
@@ -286,8 +282,6 @@
 				DAB9DAF22DFA8DB50052C33A /* FirebaseCrashlytics */,
 				DAB9DAF42DFA8DB50052C33A /* FirebaseDatabase */,
 				DAB9DAF62DFA8DB50052C33A /* FirebaseDynamicLinks */,
-				DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */,
-				DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */,
 				DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */,
 				DAB9DAFE2DFA8DB50052C33A /* FirebaseFunctionsCombine-Community */,
 				DAB9DB002DFA8DB50052C33A /* FirebaseInAppMessaging-Beta */,
@@ -965,16 +959,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseDynamicLinks;
-		};
-		DAB9DAF82DFA8DB50052C33A /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		DAB9DAFA2DFA8DB50052C33A /* FirebaseFirestoreCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseFirestoreCombine-Community";
 		};
 		DAB9DAFC2DFA8DB50052C33A /* FirebaseFunctions */ = {
 			isa = XCSwiftPackageProductDependency;

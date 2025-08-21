@@ -52,13 +52,24 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         // Set badge based on priority
         content.badge = NSNumber(value: max(1, Int(trigger.priority)))
         
-        // Add custom data
-        content.userInfo = [
+        // Fixed: Properly handle optional data encoding
+        var userInfoDict: [String: Any] = [
             "triggerType": trigger.type.rawValue,
             "triggerName": trigger.name,
-            "context": try? JSONEncoder().encode(context) ?? Data(),
             "scheduledAt": Date().timeIntervalSince1970
         ]
+        
+        // Safely attach context data using property-list types only
+        var contextInfo: [String: Any] = [
+            "sessionDuration": context.sessionDuration,
+            "timestamp": context.timestamp
+        ]
+        if let name = context.workplaceName { contextInfo["workplaceName"] = name }
+        if let stress = context.stressLevel { contextInfo["stressLevel"] = stress }
+        if let focus = context.focusLevel { contextInfo["focusLevel"] = focus }
+        userInfoDict["context"] = contextInfo
+        
+        content.userInfo = userInfoDict
         
         // Schedule immediately for contextual triggers
         let request = UNNotificationRequest(
@@ -221,27 +232,29 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
     
     func cancelNotifications(withPrefix prefix: String) {
         Task {
-            let pending = await self.notificationCenter.pendingNotificationRequests()
+            // Fixed: Removed unnecessary await - these methods are not async
+            let pending = await notificationCenter.pendingNotificationRequests()
             let identifiersToCancel = pending.compactMap { request in
                 request.identifier.hasPrefix(prefix) ? request.identifier : nil
             }
             
             if !identifiersToCancel.isEmpty {
-                await self.notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiersToCancel)
-                await self.updateActiveNotifications()
+                notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiersToCancel)
+                await updateActiveNotifications()
             }
         }
     }
     
     func cancelAllPersonalizedNotifications() {
         Task {
-            await self.notificationCenter.removeAllPendingNotificationRequests()
-            await self.updateActiveNotifications()
+            // Fixed: Removed unnecessary await
+            notificationCenter.removeAllPendingNotificationRequests()
+            await updateActiveNotifications()
         }
     }
     
     private func updateActiveNotifications() async {
-        let pending = await self.notificationCenter.pendingNotificationRequests()
+        let pending = await notificationCenter.pendingNotificationRequests()
         self.activeNotifications = pending
     }
     
@@ -277,7 +290,11 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         }
         
         Task {
-            await self.updateActiveNotifications()
+            await MainActor.run {
+                Task {
+                    await self.updateActiveNotifications()
+                }
+            }
         }
         
         completionHandler()

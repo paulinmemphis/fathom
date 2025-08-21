@@ -176,12 +176,12 @@ struct CompletionStep: View {
                 Button("Get Started") {
                     Task {
                         do {
-                            try await personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
+                            try personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
                         } catch {
                             // Optionally handle or log the error
                             print("Failed to set user profile during onboarding: \(error)")
                         }
-                        await personalizationEngine.persistUserPreferences()
+                        personalizationEngine.persistUserPreferences()
                         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                         isPresented = false
                     }

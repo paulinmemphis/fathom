@@ -1,56 +1,35 @@
 import Foundation
+import CoreData
+import SwiftUI
+import Combine
 
-// MARK: - Type Aliases
+// MARK: - Supporting Types First (to resolve scope issues)
 
-typealias UserPreferencesDictionary = [InsightType: UserPreference]
-
-// MARK: - Errors
-
-enum PersonalizationError: Error, LocalizedError {
-    case persistenceFailure(underlying: Error)
-    case invalidData
-    case initializationFailure
-    case invalidUserInput
-    
-    var errorDescription: String? {
-        switch self {
-        case .persistenceFailure(let error):
-            return "Failed to save user preferences: \(error.localizedDescription)"
-        case .invalidData:
-            return "Invalid preference data format"
-        case .initializationFailure:
-            return "Failed to initialize personalization engine"
-        case .invalidUserInput:
-            return "Invalid user input provided"
-        }
-    }
+enum PreferenceCategory: String, Codable, Sendable, CaseIterable {
+    case financial = "financial"
+    case reporting = "reporting"
+    case compliance = "compliance"
+    case strategic = "strategic"
+    case operational = "operational"
 }
 
-// MARK: - Enums
+enum WorkRole: String, Codable, Sendable, CaseIterable {
+    case developer
+    case designer
+    case manager
+    case executive
+    case analyst
+    case consultant
+    case other
 
-enum ContextualTriggerType: String, CaseIterable, Codable {
-    case highStress = "high_stress"
-    case lowFocus = "low_focus"
-    case longSession = "long_session"
-    case workplacePattern = "workplace_pattern"
-    case reflectionPrompt = "reflection_prompt"
-    
-    var displayName: String {
-        switch self {
-        case .highStress: return "High Stress Detection"
-        case .lowFocus: return "Low Focus Detection"
-        case .longSession: return "Long Session Alert"
-        case .workplacePattern: return "Workplace Pattern"
-        case .reflectionPrompt: return "Reflection Prompt"
-        }
-    }
+    var displayName: String { rawValue.capitalized }
 }
 
-enum InsightComplexity: String, CaseIterable, Codable, Sendable {
+enum InsightComplexity: String, CaseIterable, Sendable {
     case basic = "Basic"
     case intermediate = "Intermediate"
     case advanced = "Advanced"
-    
+
     var intValue: Int {
         switch self {
         case .basic: return 1
@@ -71,7 +50,7 @@ enum InsightComplexity: String, CaseIterable, Codable, Sendable {
     }
 }
 
-enum WorkIndustry: String, CaseIterable, Codable {
+enum WorkIndustry: String, CaseIterable, Sendable {
     case technology
     case healthcare
     case finance
@@ -112,81 +91,18 @@ enum WorkIndustry: String, CaseIterable, Codable {
     }
 }
 
-enum WorkRole: String, CaseIterable, Codable {
-    case developer
-    case designer
-    case manager
-    case executive
-    case analyst
-    case consultant
-    case other
-    
-    var displayName: String {
-        return rawValue.capitalized
-    }
+struct CulturalNorms: Sendable, Equatable {
+    let pace: String
+    let hierarchy: String
+    let communication: String
+    let workLifeBalance: String
 }
 
-enum InteractionAction {
-    case viewed
-    case dismissed
-    case actionTaken
-}
+// MARK: - App Data Models
 
-enum InsightType: String, CaseIterable, Codable {
-    case observation = "Observation"
-    case question = "Question"
-    case suggestion = "Suggestion"
-    case affirmation = "Affirmation"
-    case alert = "Alert" // For more critical patterns
-    case prediction = "Prediction" // For forecasting insights
-    case anomaly = "Anomaly" // For unusual pattern detection
-    case warning = "Warning"
-    case celebration = "Celebration"
-    case trend = "Trend"
-    case correlation = "Correlation"
-    case goalProgress = "Goal Progress"
-    case workplaceSpecific = "Workplace Specific"
-}
-
-// MARK: - Data Structures
-
-struct ContextualTrigger: Codable, Identifiable, Sendable {
-    let id: UUID
-    let name: String
-    let type: ContextualTriggerType
-    let message: String
-    let priority: Int // 1-10, higher is more important
-    let cooldownHours: Double
-    var lastTriggered: Date?
-
-    init(
-        id: UUID = UUID(),
-        name: String,
-        type: ContextualTriggerType,
-        message: String,
-        priority: Int = 5,
-        cooldownHours: Double = 2.0,
-        lastTriggered: Date? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.type = type
-        self.message = message
-        self.priority = max(1, min(10, priority)) // Clamp to valid range
-        self.cooldownHours = max(0.5, cooldownHours) // Minimum 30 minutes
-        self.lastTriggered = lastTriggered
-    }
-    
-    var canTrigger: Bool {
-        guard let lastTriggered = lastTriggered else { return true }
-        let cooldownInterval = cooldownHours * 3600 // Convert to seconds
-        return Date().timeIntervalSince(lastTriggered) >= cooldownInterval
-    }
-}
-
-struct WorkplaceCheckInData: Codable, Sendable {
+struct WorkplaceCheckInData: Sendable {
     let workplaceName: String?
-    let sessionDuration: Int // in minutes
+    let sessionDuration: Int
     let stressLevel: Double?
     let focusLevel: Double?
     let timestamp: Date
@@ -204,130 +120,466 @@ struct WorkplaceCheckInData: Codable, Sendable {
         self.focusLevel = focusLevel.map { max(0.0, min(1.0, $0)) }
         self.timestamp = timestamp
     }
-    
-    // Convenience init from Core Data object
-    init(fromMO checkIn: WorkplaceCheckIn) {
-        self.workplaceName = (checkIn.workplace as? Workplace)?.name
-        self.sessionDuration = Int(checkIn.duration ?? 0)
-        self.stressLevel = checkIn.stressLevel
-        self.focusLevel = checkIn.focusLevel
-        self.timestamp = checkIn.timestamp
-    }
 }
 
-struct UserPreference: Codable, Sendable {
-    let id: UUID
-    var insightType: InsightType
-    var engagementScore: Double // 0.0 to 1.0
-    var dismissalRate: Double // 0.0 to 1.0
-    var actionRate: Double // 0.0 to 1.0
-    var lastUpdated: Date
-    var viewCount: Int
-    var dismissalCount: Int
-    var actionCount: Int
+// MARK: - Core Data Stack with iOS 26 Beta Fixes
 
-    init(
-        id: UUID = UUID(),
-        insightType: InsightType,
-        engagementScore: Double = 0.5,
-        dismissalRate: Double = 0.1,
-        actionRate: Double = 0.3,
-        lastUpdated: Date = Date(),
-        viewCount: Int = 0,
-        dismissalCount: Int = 0,
-        actionCount: Int = 0
-    ) {
-        self.id = id
-        self.insightType = insightType
-        self.engagementScore = max(0.0, min(1.0, engagementScore))
-        self.dismissalRate = max(0.0, min(1.0, dismissalRate))
-        self.actionRate = max(0.0, min(1.0, actionRate))
-        self.lastUpdated = lastUpdated
-        self.viewCount = max(0, viewCount)
-        self.dismissalCount = max(0, dismissalCount)
-        self.actionCount = max(0, actionCount)
-    }
+final class FathomCoreDataStack: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
     
-    mutating func updateEngagement(dismissed: Bool, actionTaken: Bool) {
-        let weight = 0.1 // Learning rate
+    // Remove @MainActor to fix ObservableObject conformance
+    lazy var persistentContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "FathomDataModel")
         
-        if dismissed {
-            dismissalCount += 1
-            dismissalRate = dismissalRate * (1 - weight) + weight
-            engagementScore = max(0.0, engagementScore - weight * 0.5)
-        } else {
-            if actionTaken {
-                actionCount += 1
-                actionRate = actionRate * (1 - weight) + weight
-                engagementScore = min(1.0, engagementScore + weight)
+        // iOS 26: Improved configuration for concurrent access
+        container.persistentStoreDescriptions.first?.setOption(true as NSNumber,
+                                                              forKey: NSPersistentHistoryTrackingKey)
+        container.persistentStoreDescriptions.first?.setOption(true as NSNumber,
+                                                              forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        
+        container.loadPersistentStores { _, error in
+            if let error = error as NSError? {
+                fatalError("Core Data error: \(error), \(error.userInfo)")
             }
         }
         
-        viewCount += 1
-        lastUpdated = Date()
-    }
-}
-
-struct CulturalNorms: Codable, Sendable {
-    let pace: String
-    let hierarchy: String
-    let communication: String
-    let workLifeBalance: String
-
-    init(pace: String, hierarchy: String, communication: String, workLifeBalance: String) {
-        self.pace = pace
-        self.hierarchy = hierarchy
-        self.communication = communication
-        self.workLifeBalance = workLifeBalance
-    }
-}
-
-struct InsightData: Identifiable, Sendable, Codable {
-    let id: UUID
-    let type: InsightType
-    var message: String
-    var priority: Int
-    var confidence: Double
-    let timestamp: Date
+        // iOS 26: Enhanced automatic merging - use safer merge policy
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        
+        return container
+    }()
     
-    init(id: UUID = UUID(), type: InsightType, message: String, priority: Int = 5, confidence: Double = 0.8, timestamp: Date = Date()) {
+    var viewContext: NSManagedObjectContext {
+        persistentContainer.viewContext
+    }
+    
+    // Remove @concurrent - not needed for this method
+    func performBackgroundTask<T: Sendable>(_ block: @Sendable @escaping (NSManagedObjectContext) throws -> T) async throws -> T {
+        return try await withCheckedThrowingContinuation { continuation in
+            persistentContainer.performBackgroundTask { context in
+                do {
+                    let result = try block(context)
+                    continuation.resume(returning: result)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // iOS 26: Enhanced save with improved error handling
+    @MainActor
+    func save() async throws {
+        guard viewContext.hasChanges else { return }
+        
+        try await withCheckedThrowingContinuation { continuation in
+            viewContext.perform {
+                do {
+                    try self.viewContext.save()
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Core Data Models with iOS 26 Beta Fixes
+
+extension ContextualTriggerEntity {
+    // Fix: Use the correct Core Data API for thread-safe access
+    var safeID: UUID {
+        var result: UUID!
+        managedObjectContext?.performAndWait {
+            result = self.id ?? UUID()
+        }
+        return result
+    }
+    
+    var safeName: String {
+        var result: String!
+        managedObjectContext?.performAndWait {
+            result = self.name ?? "Unnamed Trigger"
+        }
+        return result
+    }
+
+    // Ensure defaults on insert to satisfy validation
+    override public func awakeFromInsert() {
+        super.awakeFromInsert()
+        let now = Date()
+        if self.value(forKey: "id") == nil {
+            self.id = UUID()
+        }
+        if (self.value(forKey: "name") as? String)?.isEmpty != false {
+            self.name = "Unnamed Trigger"
+        }
+        if self.value(forKey: "isActive") == nil {
+            self.isActive = true
+        }
+        if self.value(forKey: "createdAt") == nil {
+            self.createdAt = now
+        }
+        if self.value(forKey: "updatedAt") == nil {
+            self.updatedAt = now
+        }
+    }
+
+    // Maintain updatedAt on change
+    override public func willSave() {
+        super.willSave()
+        if self.hasChanges {
+            self.updatedAt = Date()
+        }
+    }
+}
+
+extension UserPreferenceEntity {
+    // Swift 6.2: Type-safe category handling
+    var category: PreferenceCategory {
+        get { PreferenceCategory(rawValue: categoryRawValue ?? "") ?? .operational }
+        set { categoryRawValue = newValue.rawValue }
+    }
+    
+    // Validation hooks
+    override public func validateForInsert() throws {
+        try super.validateForInsert()
+        try validateCategory()
+    }
+    
+    override public func validateForUpdate() throws {
+        try super.validateForUpdate()
+        try validateCategory()
+    }
+    
+    private func validateCategory() throws {
+        guard let raw = categoryRawValue, PreferenceCategory(rawValue: raw) != nil else {
+            throw CoreDataError.invalidCategory(categoryRawValue ?? "unknown")
+        }
+    }
+
+    // Ensure defaults on insert to satisfy validation
+    override public func awakeFromInsert() {
+        super.awakeFromInsert()
+        let now = Date()
+        if self.value(forKey: "id") == nil {
+            self.id = UUID()
+        }
+        if (self.value(forKey: "key") as? String)?.isEmpty != false {
+            self.key = "unknown"
+        }
+        if (self.value(forKey: "value") as? String)?.isEmpty != false {
+            self.value = ""
+        }
+        if (self.value(forKey: "categoryRawValue") as? String)?.isEmpty != false {
+            self.categoryRawValue = PreferenceCategory.operational.rawValue
+        }
+        if self.value(forKey: "isActive") == nil {
+            self.isActive = true
+        }
+        if self.value(forKey: "createdAt") == nil {
+            self.createdAt = now
+        }
+        if self.value(forKey: "updatedAt") == nil {
+            self.updatedAt = now
+        }
+    }
+
+    // Maintain updatedAt on change
+    override public func willSave() {
+        super.willSave()
+        if self.hasChanges {
+            self.updatedAt = Date()
+        }
+    }
+}
+
+// MARK: - Core Data Manager with iOS 26 Beta Fixes
+
+final class FathomCoreDataManager: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
+    
+    private let coreDataStack: FathomCoreDataStack
+    
+    init(coreDataStack: FathomCoreDataStack = FathomCoreDataStack()) {
+        self.coreDataStack = coreDataStack
+    }
+    
+    var viewContext: NSManagedObjectContext {
+        coreDataStack.viewContext
+    }
+    
+    // MARK: - ContextualTrigger Operations
+    
+    func createContextualTrigger(
+        name: String,
+        description: String? = nil,
+        isActive: Bool = true,
+        userPreferenceId: UUID? = nil
+    ) async throws -> StoredContextualTrigger {
+        
+        return try await coreDataStack.performBackgroundTask { context in
+            let trigger = ContextualTriggerEntity(context: context)
+            trigger.id = UUID()
+            trigger.name = name
+            trigger.triggerDescription = description
+            trigger.isActive = isActive
+            trigger.createdAt = Date()
+            trigger.updatedAt = Date()
+            
+            // Handle relationship if provided
+            if let preferenceId = userPreferenceId {
+                let request: NSFetchRequest<UserPreferenceEntity> = UserPreferenceEntity.fetchRequest()
+                request.predicate = NSPredicate(format: "id == %@", preferenceId as CVarArg)
+                
+                if let preference = try context.fetch(request).first {
+                    trigger.userPreference = preference
+                }
+            }
+            
+            try context.save()
+            // Build value struct to return across concurrency boundary
+            return StoredContextualTrigger(
+                id: trigger.id ?? UUID(),
+                name: trigger.name ?? "Unknown",
+                description: trigger.triggerDescription,
+                isActive: trigger.isActive,
+                userPreferenceId: trigger.userPreference?.id
+            )
+        }
+    }
+    
+    @MainActor
+    func fetchContextualTriggers() async throws -> [ContextualTriggerEntity] {
+        let request: NSFetchRequest<ContextualTriggerEntity> = ContextualTriggerEntity.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ContextualTriggerEntity.createdAt, ascending: false)]
+        return try viewContext.fetch(request)
+    }
+    
+    // MARK: - UserPreference Operations
+    
+    func createUserPreference(
+        key: String,
+        value: String,
+        category: PreferenceCategory,
+        isActive: Bool = true
+    ) async throws -> UserPreference {
+        
+        return try await coreDataStack.performBackgroundTask { context in
+            let preference = UserPreferenceEntity(context: context)
+            preference.id = UUID()
+            preference.key = key
+            preference.value = value
+            preference.category = category
+            preference.isActive = isActive
+            preference.createdAt = Date()
+            preference.updatedAt = Date()
+            
+            try context.save()
+            // Build value struct
+            return UserPreference(
+                id: preference.id ?? UUID(),
+                key: preference.key ?? "unknown",
+                value: preference.value ?? "",
+                category: preference.category,
+                isActive: preference.isActive,
+                contextualTriggerIds: (preference.triggers as? Set<ContextualTriggerEntity> ?? []).compactMap { $0.id }
+            )
+        }
+    }
+    
+    @MainActor
+    func fetchUserPreferences() async throws -> [UserPreferenceEntity] {
+        let request: NSFetchRequest<UserPreferenceEntity> = UserPreferenceEntity.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \UserPreferenceEntity.createdAt, ascending: false)]
+        return try viewContext.fetch(request)
+    }
+    
+    // MARK: - Relationship Operations
+    
+    func linkTriggerToPreference(triggerId: UUID, preferenceId: UUID) async throws {
+        try await coreDataStack.performBackgroundTask { context in
+            // Fix: Create fetch requests in the background context
+            let triggerRequest = NSFetchRequest<ContextualTriggerEntity>(entityName: "ContextualTriggerEntity")
+            triggerRequest.predicate = NSPredicate(format: "id == %@", triggerId as CVarArg)
+            
+            let preferenceRequest = NSFetchRequest<UserPreferenceEntity>(entityName: "UserPreferenceEntity")
+            preferenceRequest.predicate = NSPredicate(format: "id == %@", preferenceId as CVarArg)
+            
+            guard let trigger = try context.fetch(triggerRequest).first,
+                  let preference = try context.fetch(preferenceRequest).first else {
+                throw CoreDataError.entityNotFound
+            }
+            
+            trigger.userPreference = preference
+            // Use generated accessor to maintain inverse relationship
+            preference.addToTriggers(trigger)
+            
+            try context.save()
+        }
+    }
+    
+    // MARK: - iOS 26 Enhanced Features
+    
+    @available(iOS 26.0, *)
+    func performBulkUpdate() async throws {
+        // iOS 26: Enhanced batch operations with improved performance
+        try await coreDataStack.performBackgroundTask { context in
+            let request = NSBatchUpdateRequest(entityName: "ContextualTriggerEntity")
+            request.predicate = NSPredicate(format: "updatedAt < %@", Date().addingTimeInterval(-86400) as CVarArg)
+            request.propertiesToUpdate = ["updatedAt": Date()]
+            request.resultType = .updatedObjectsCountResultType
+            
+            let result = try context.execute(request) as? NSBatchUpdateResult
+            print("Updated \(result?.result ?? 0) entities")
+        }
+    }
+}
+
+// MARK: - Error Handling (Fix Sendable conformance)
+
+enum CoreDataError: Error, Sendable {
+    case invalidCategory(String)
+    case entityNotFound
+    case saveFailed(Error)
+    
+    // Fix: Make error description nonisolated
+    var errorDescription: String? {
+        switch self {
+        case .invalidCategory(let category):
+            return "Invalid category: \(category)"
+        case .entityNotFound:
+            return "Entity not found"
+        case .saveFailed(let error):
+            return "Save failed: \(error.localizedDescription)"
+        }
+    }
+}
+
+// MARK: - SwiftUI Integration (Fixed)
+
+@MainActor
+struct FathomContentView: View {
+    @StateObject private var coreDataManager = FathomCoreDataManager()
+    @State private var triggers: [ContextualTriggerEntity] = []
+    @State private var preferences: [UserPreferenceEntity] = []
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Triggers") {
+                    ForEach(triggers, id: \.objectID) { trigger in
+                        Text(trigger.safeName)
+                    }
+                }
+                
+                Section("Preferences") {
+                    ForEach(preferences, id: \.objectID) { preference in
+                        Text(preference.key ?? "unknown")
+                    }
+                }
+            }
+            .navigationTitle("Fathom")
+            .task {
+                await loadData()
+            }
+        }
+        .environment(\.managedObjectContext, coreDataManager.viewContext)
+    }
+    
+    private func loadData() async {
+        do {
+            let loadedTriggers = try await coreDataManager.fetchContextualTriggers()
+            let loadedPreferences = try await coreDataManager.fetchUserPreferences()
+            
+            // Update on main actor
+            await MainActor.run {
+                self.triggers = loadedTriggers
+                self.preferences = loadedPreferences
+            }
+        } catch {
+            print("Failed to load data: \(error)")
+        }
+    }
+}
+
+// MARK: - Core Data Model Extensions (Generated in DerivedSources)
+
+// MARK: - Pure Swift Models (storage-only, distinct from engine models)
+
+struct StoredContextualTrigger: Sendable, Identifiable {
+    let id: UUID
+    let name: String
+    let description: String?
+    let isActive: Bool
+    let createdAt: Date
+    let updatedAt: Date
+    let userPreferenceId: UUID?
+    
+    nonisolated init(id: UUID = UUID(),
+         name: String,
+         description: String? = nil,
+         isActive: Bool = true,
+         userPreferenceId: UUID? = nil) {
         self.id = id
-        self.type = type
-        self.message = message
-        self.priority = max(1, min(10, priority))
-        self.confidence = max(0.0, min(1.0, confidence))
-        self.timestamp = timestamp
+        self.name = name
+        self.description = description
+        self.isActive = isActive
+        self.createdAt = Date()
+        self.updatedAt = Date()
+        self.userPreferenceId = userPreferenceId
     }
-}
-
-struct BreathingSessionData: Codable, Sendable {
-    let id: UUID
-    let timestamp: Date
-    let duration: Int
     
-    // Convenience init from Core Data object
-    init(fromMO exercise: BreathingExercise) {
-        self.id = exercise.id ?? UUID()
-        self.timestamp = exercise.completedAt ?? Date()
-        self.duration = Int(exercise.duration)
+    // Convert from Core Data entity
+    nonisolated init(from entity: ContextualTriggerEntity) {
+        self.id = entity.id ?? UUID()
+        self.name = entity.name ?? "Unknown"
+        self.description = entity.triggerDescription
+        self.isActive = entity.isActive
+        self.createdAt = entity.createdAt ?? Date()
+        self.updatedAt = entity.updatedAt ?? Date()
+        self.userPreferenceId = entity.userPreference?.id
     }
 }
 
-struct WorkplaceJournalEntryData: Codable, Sendable {
+struct UserPreference: Sendable, Identifiable {
     let id: UUID
-    let timestamp: Date
-    let content: String
+    let key: String
+    let value: String
+    let category: PreferenceCategory
+    let isActive: Bool
+    let createdAt: Date
+    let updatedAt: Date
+    let contextualTriggerIds: [UUID]
     
-    // Convenience init from Core Data object
-    init(from entry: WorkplaceJournalEntry) {
-        self.id = entry.id
-        self.timestamp = entry.date
-        self.content = entry.text
+    nonisolated init(id: UUID = UUID(),
+         key: String,
+         value: String,
+         category: PreferenceCategory,
+         isActive: Bool = true,
+         contextualTriggerIds: [UUID] = []) {
+        self.id = id
+        self.key = key
+        self.value = value
+        self.category = category
+        self.isActive = isActive
+        self.createdAt = Date()
+        self.updatedAt = Date()
+        self.contextualTriggerIds = contextualTriggerIds
     }
-}
-
-struct UserGoal: Codable {
-    let id: UUID
-    let title: String
-    let progress: Double
+    
+    // Convert from Core Data entity
+    nonisolated init(from entity: UserPreferenceEntity) {
+        self.id = entity.id ?? UUID()
+        self.key = entity.key ?? "unknown"
+        self.value = entity.value ?? ""
+        self.category = entity.category
+        self.isActive = entity.isActive
+        self.createdAt = entity.createdAt ?? Date()
+        self.updatedAt = entity.updatedAt ?? Date()
+        let triggerSet = (entity.triggers as? Set<ContextualTriggerEntity>) ?? []
+        self.contextualTriggerIds = triggerSet.map { $0.id ?? UUID() }
+    }
 }

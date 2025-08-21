@@ -11,6 +11,7 @@ import StoreKit
 
 struct SettingsView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @Environment(\.requestReview) private var requestReview
     @State private var showingMailComposer = false
     @State private var showingSubscriptionSheet = false
     @State private var showingAlert = false
@@ -105,11 +106,11 @@ struct SettingsView: View {
             .sheet(isPresented: $isOnboardingPresented) {
                 OnboardingView(isPresented: $isOnboardingPresented)
             }
-            .alert(alertTitle, isPresented: $showingAlert) {
+            .alert(alertTitle, isPresented: $showingAlert, actions: {
                 Button("OK") { }
-            } message: {
+            }, message: {
                 Text(alertMessage)
-            }
+            })
         }
     }
     
@@ -151,9 +152,7 @@ struct SettingsView: View {
     }
     
     private func rateApp() {
-        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-            SKStoreReviewController.requestReview(in: scene)
-        }
+        requestReview()
     }
     
     private func openPrivacyPolicy() {

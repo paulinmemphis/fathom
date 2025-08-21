@@ -82,10 +82,12 @@ struct FocusTimerView: View {
             sessionState: .focused
         )
         
+        let content = ActivityContent(state: initialState, staleDate: nil)
+        
         do {
             activity = try Activity<FathomActivityAttributes>.request(
                 attributes: attributes,
-                contentState: initialState,
+                content: content,
                 pushType: nil
             )
         } catch {
@@ -109,9 +111,10 @@ struct FocusTimerView: View {
             timeRemaining: "Done!",
             sessionState: .paused
         )
+        let content = ActivityContent(state: finalState, staleDate: nil)
         let activity = self.activity // capture before Task
         Task {
-            await activity?.end(using: finalState, dismissalPolicy: .after(Date().addingTimeInterval(5)))
+            await activity?.end(content, dismissalPolicy: .immediate)
         }
         isTimerRunning = false
     }

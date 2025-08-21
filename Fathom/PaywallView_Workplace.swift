@@ -443,7 +443,7 @@ struct EnhancedSubscriptionOptionView: View {
                         .font(.headline)
                     
                     if let subscription = product.subscription {
-                        Text("\(product.displayPrice) / \(subscription.subscriptionPeriod.value) \(subscription.subscriptionPeriod.unit)")
+                        Text("\(product.displayPrice) / \(subscription.subscriptionPeriod.value) \(subscriptionPeriodUnitString(subscription.subscriptionPeriod.unit))")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     } else {
@@ -493,5 +493,15 @@ struct EnhancedSubscriptionOptionView: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func subscriptionPeriodUnitString(_ unit: Product.SubscriptionPeriod.Unit) -> String {
+        switch unit {
+        case .day: return "day"
+        case .week: return "week"
+        case .month: return "month"
+        case .year: return "year"
+        @unknown default: return ""
+        }
     }
 }

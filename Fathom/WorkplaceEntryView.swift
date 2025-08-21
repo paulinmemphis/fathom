@@ -34,7 +34,7 @@ struct WorkplaceEntryView: View {
     
     // MARK: - Body
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     // Header with illustration
@@ -72,7 +72,7 @@ struct WorkplaceEntryView: View {
                     .environmentObject(subscriptionManager)
             }
             .alert("Workplace Saved", isPresented: $showingSaveSuccess) {
-                Button("OK") {
+                Button("OK", role: .cancel) {
                     dismiss()
                 }
             } message: {
@@ -234,7 +234,7 @@ struct WorkplaceEntryView: View {
                         .fill(Color.gray.opacity(0.1))
                 )
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(.plain)
             
             if isShowingAdvancedOptions {
                 Section(header: Text("Automation").font(.title3).fontWeight(.semibold)) {
@@ -286,7 +286,7 @@ struct WorkplaceEntryView: View {
                             .fill(Color.gray.opacity(0.1))
                     )
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 
                 // Another premium feature
                 Button {
@@ -311,7 +311,7 @@ struct WorkplaceEntryView: View {
                             .fill(Color.gray.opacity(0.1))
                     )
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
             }
         }
     }
@@ -324,7 +324,8 @@ struct WorkplaceEntryView: View {
             HStack {
                 if isSaving {
                     UserProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .progressViewStyle(.circular)
+                        .tint(.white)
                         .scaleEffect(0.8)
                 } else {
                     Text(workplaceToEdit == nil ? "Save Workplace" : "Update Workplace")
@@ -536,7 +537,7 @@ struct WeekdayButton: View {
                 )
                 .foregroundColor(isSelected ? .white : .primary)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 

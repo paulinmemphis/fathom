@@ -6,7 +6,7 @@ struct InsightsView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingPaywall = false
-    @StateObject private var personalizationEngine = PersonalizationEngine.shared
+    @ObservedObject private var personalizationEngine = PersonalizationEngine.shared
     
     // FetchRequest for CheckIn entities
     @FetchRequest(
@@ -92,9 +92,9 @@ struct InsightsView: View {
     private func loadPersonalizedInsights() {
         Task {
             // Map Core Data objects to data structs
-            let checkInsData = checkInLogs.map(WorkplaceCheckInData.init(fromMO:))
-            let breathingData = breathingLogs.map(BreathingSessionData.init(fromMO:))
-            let journalData = journalStore.entries.map { WorkplaceJournalEntryData(from: $0) }
+            let checkInsData = personalizationEngine.convertWorkplaceCheckIns(Array(checkInLogs))
+            let breathingData = breathingLogs.map { BreathingData(from: $0) }
+            let journalData = journalStore.entries
             let goalsArray = goalsManager.goals
             
             let generatedInsights = await personalizationEngine.generatePersonalizedInsights(
@@ -119,7 +119,7 @@ struct InsightsView: View {
     private func handleInsightInteraction(_ insight: AppInsight, dismissed: Bool, actionTaken: Bool) {
         Task {
             do {
-                try personalizationEngine.recordInteraction(for: insight.type, action: dismissed ? .dismissed : (actionTaken ? .actionTaken : .viewed))
+                try personalizationEngine.recordInsightEngagement(insight.type, wasDismissed: dismissed, actionTaken: actionTaken)
             } catch {
                 // Handle or log the error appropriately
                 print("Failed to record interaction: \(error.localizedDescription)")

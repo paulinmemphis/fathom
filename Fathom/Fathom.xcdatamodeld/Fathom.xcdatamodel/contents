@@ -17,6 +17,17 @@
         <attribute name="totalBreaths" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="userRating" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="ContextualTriggerEntity" representedClassName="ContextualTriggerEntity" syncable="YES" codeGenerationType="category">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isActive" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String" defaultValueString="&quot;&quot;"/>
+        <attribute name="priority" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="triggerDescription" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="relatedPreferences" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserPreferenceEntity" inverseName="contextualTrigger" inverseEntity="UserPreferenceEntity"/>
+        <relationship name="userPreference" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserPreferenceEntity" inverseName="triggers" inverseEntity="UserPreferenceEntity"/>
+    </entity>
     <entity name="Item" representedClassName="Item" syncable="YES">
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
     </entity>
@@ -26,6 +37,17 @@
         <attribute name="moodRating" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="text" optional="YES" attributeType="String"/>
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="UserPreferenceEntity" representedClassName="UserPreferenceEntity" syncable="YES" codeGenerationType="category">
+        <attribute name="categoryRawValue" attributeType="String" defaultValueString="&quot;&quot;"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isActive" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="key" attributeType="String" defaultValueString="&quot;&quot;"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="value" attributeType="String" defaultValueString="&quot;&quot;"/>
+        <relationship name="contextualTrigger" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ContextualTriggerEntity" inverseName="relatedPreferences" inverseEntity="ContextualTriggerEntity"/>
+        <relationship name="triggers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ContextualTriggerEntity" inverseName="userPreference" inverseEntity="ContextualTriggerEntity"/>
     </entity>
     <entity name="UserStats" representedClassName="UserStats" syncable="YES">
         <attribute name="currentBreathingStreak" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>

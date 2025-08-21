@@ -5,7 +5,18 @@ import UserNotifications
 import CoreData
 import os
 
+// DTOs moved to `PersonalizationDTOs.swift` to avoid actor isolation warnings
 
+enum PersonalizationError: Error, LocalizedError, Sendable {
+    case initializationFailure
+    
+    nonisolated var errorDescription: String? {
+        switch self {
+        case .initializationFailure:
+            return "PersonalizationEngine is not initialized yet."
+        }
+    }
+}
 
 @available(iOS 14.0, *)
 @MainActor
@@ -21,7 +32,7 @@ final class PersonalizationEngine: ObservableObject {
     // MARK: - Private Properties
     private var userPreferences: UserPreferencesDictionary = [:]
     private var contextualTriggers: [ContextualTrigger] = []
-    private var pendingPreferenceUpdates: [InsightType: UserPreference] = [:]
+    private var pendingPreferenceUpdates: [InsightType: InsightPreference] = [:]
     
     private let userDefaults = UserDefaults.standard
     private var cancellables = Set<AnyCancellable>()
@@ -39,16 +50,22 @@ final class PersonalizationEngine: ObservableObject {
     
     private init() {
         notificationCenter = UNUserNotificationCenter.current()
+        // Eagerly initialize so tests and first access see a ready engine
+        performInitialSetup()
     }
 
     // MARK: - Initialization
     
     @MainActor func initialize() async throws {
+        // Keep async signature for compatibility, but do synchronous setup
         guard !isInitialized else { return }
-        
-        await loadUserPreferences()
-        await setupDefaultTriggersIfNeeded()
-        await updateComplexityBasedOnUsage()
+        performInitialSetup()
+    }
+
+    @MainActor private func performInitialSetup() {
+        loadUserPreferences()
+        setupDefaultTriggersIfNeeded()
+        updateComplexityBasedOnUsage()
         setupNotificationObserver()
         setupPersistenceTimer()
         isInitialized = true
@@ -62,7 +79,7 @@ final class PersonalizationEngine: ObservableObject {
                 guard let self = self else { return }
                 Task { @MainActor [weak self] in
                     guard let self = self, self.isInitialized else { return }
-                    await self.loadUserPreferences()
+                    self.loadUserPreferences()
                 }
             }
             .store(in: &cancellables)
@@ -74,7 +91,7 @@ final class PersonalizationEngine: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 Task { @MainActor [weak self] in
-                    await self?.flushPendingUpdates()
+                    self?.flushPendingUpdates()
                 }
             }
             .store(in: &cancellables)
@@ -104,9 +121,7 @@ final class PersonalizationEngine: ObservableObject {
         userDefaults.set(role.rawValue, forKey: Keys.userRole)
         userDefaults.set(industry.rawValue, forKey: Keys.userIndustry)
         
-        Task {
-            await updateContextualTriggersForProfile()
-        }
+        updateContextualTriggersForProfile()
         
         logger.info("User profile updated: role=\(role.rawValue), industry=\(industry.rawValue)")
     }
@@ -131,7 +146,7 @@ final class PersonalizationEngine: ObservableObject {
             throw PersonalizationError.initializationFailure
         }
         
-        var preference = userPreferences[type] ?? UserPreference(insightType: type)
+        var preference = userPreferences[type] ?? InsightPreference(insightType: type)
         preference.updateEngagement(dismissed: wasDismissed, actionTaken: actionTaken)
         
         // Store in pending updates for batched persistence
@@ -146,7 +161,7 @@ final class PersonalizationEngine: ObservableObject {
             throw PersonalizationError.initializationFailure
         }
         
-        var preference = userPreferences[insightType] ?? UserPreference(insightType: insightType)
+        var preference = userPreferences[insightType] ?? InsightPreference(insightType: insightType)
         
         switch action {
         case .viewed:
@@ -254,7 +269,7 @@ final class PersonalizationEngine: ObservableObject {
         return contextualTriggers
     }
     
-    @MainActor private func setupDefaultTriggersIfNeeded() async {
+    @MainActor private func setupDefaultTriggersIfNeeded() {
         // Only setup if no triggers exist
         guard contextualTriggers.isEmpty else { return }
         
@@ -282,13 +297,13 @@ final class PersonalizationEngine: ObservableObject {
             )
         ]
         
-        await saveContextualTriggers()
+        saveContextualTriggers()
     }
 
-    @MainActor private func updateContextualTriggersForProfile() async {
+    @MainActor private func updateContextualTriggersForProfile() {
         switch userRole {
         case .developer:
-            await addTriggerIfNeeded(ContextualTrigger(
+            addTriggerIfNeeded(ContextualTrigger(
                 name: "Code Review Break",
                 type: .workplacePattern,
                 message: "Debugging can be mentally taxing. Take a step back to gain fresh perspective.",
@@ -296,7 +311,7 @@ final class PersonalizationEngine: ObservableObject {
                 cooldownHours: 3.0
             ))
         case .manager:
-            await addTriggerIfNeeded(ContextualTrigger(
+            addTriggerIfNeeded(ContextualTrigger(
                 name: "Meeting Overload",
                 type: .workplacePattern,
                 message: "Multiple meetings can be draining. Schedule some focus time for yourself.",
@@ -304,7 +319,7 @@ final class PersonalizationEngine: ObservableObject {
                 cooldownHours: 4.0
             ))
         case .designer:
-            await addTriggerIfNeeded(ContextualTrigger(
+            addTriggerIfNeeded(ContextualTrigger(
                 name: "Creative Block",
                 type: .workplacePattern,
                 message: "Creative blocks are normal. Try changing your environment or taking a walk.",
@@ -315,10 +330,10 @@ final class PersonalizationEngine: ObservableObject {
             break
         }
         
-        await saveContextualTriggers()
+        saveContextualTriggers()
     }
 
-    @MainActor private func addTriggerIfNeeded(_ trigger: ContextualTrigger) async {
+    @MainActor private func addTriggerIfNeeded(_ trigger: ContextualTrigger) {
         if !contextualTriggers.contains(where: { $0.name == trigger.name }) {
             contextualTriggers.append(trigger)
         }
@@ -376,14 +391,12 @@ final class PersonalizationEngine: ObservableObject {
         updatedTrigger.lastTriggered = Date()
         contextualTriggers[index] = updatedTrigger
         
-        Task {
-            await saveContextualTriggers()
-        }
+        saveContextualTriggers()
     }
 
     // MARK: - Progressive Insights
 
-    @MainActor private func updateComplexityBasedOnUsage() async {
+    @MainActor private func updateComplexityBasedOnUsage() {
         let totalEngagement = userPreferences.values.reduce(0) { $0 + $1.engagementScore }
         let averageEngagement = userPreferences.isEmpty ? 0 : totalEngagement / Double(userPreferences.count)
         let totalInteractions = userPreferences.values.reduce(0) { $0 + $1.viewCount + $1.actionCount }
@@ -405,15 +418,110 @@ final class PersonalizationEngine: ObservableObject {
     }
 
     // MARK: - Persistence
-
-    @MainActor private func flushPendingUpdates() async {
+    
+    // DTOs are defined at file scope to avoid actor isolation issues when nested in @MainActor types
+    
+    // Mapping helpers
+    private func makeDTO(from preference: InsightPreference) -> InsightPreferenceDTO {
+        InsightPreferenceDTO(
+            viewCount: preference.viewCount,
+            actionCount: preference.actionCount,
+            dismissalCount: preference.dismissalCount,
+            engagementScore: preference.engagementScore,
+            lastUpdated: preference.lastUpdated
+        )
+    }
+    
+    private func makeModel(from dto: InsightPreferenceDTO, type: InsightType) -> InsightPreference {
+        InsightPreference(
+            insightType: type,
+            viewCount: dto.viewCount,
+            actionCount: dto.actionCount,
+            dismissalCount: dto.dismissalCount,
+            engagementScore: dto.engagementScore,
+            lastUpdated: dto.lastUpdated
+        )
+    }
+    
+    private func makeDTO(from trigger: ContextualTrigger) -> ContextualTriggerDTO {
+        ContextualTriggerDTO(
+            id: trigger.id,
+            name: trigger.name,
+            type: trigger.type.rawValue,
+            message: trigger.message,
+            priority: trigger.priority,
+            cooldownHours: trigger.cooldownHours,
+            lastTriggered: trigger.lastTriggered
+        )
+    }
+    
+    private func makeModel(from dto: ContextualTriggerDTO) -> ContextualTrigger {
+        ContextualTrigger(
+            id: dto.id,
+            name: dto.name,
+            type: TriggerType(rawValue: dto.type) ?? .workplacePattern,
+            message: dto.message,
+            priority: dto.priority,
+            cooldownHours: dto.cooldownHours,
+            lastTriggered: dto.lastTriggered
+        )
+    }
+    
+    // Encoding/decoding helpers
+    private func encodeUserPreferences(_ prefs: UserPreferencesDictionary) throws -> Data {
+        // Persist as [String: DTO] to ensure stable JSON keys
+        let dict: [String: InsightPreferenceDTO] = prefs.reduce(into: [:]) { acc, element in
+            acc[element.key.rawValue] = makeDTO(from: element.value)
+        }
+        let encoder = JSONEncoder()
+        return try encoder.encode(dict)
+    }
+    
+    private func decodeUserPreferences(from data: Data) throws -> UserPreferencesDictionary {
+        let decoder = JSONDecoder()
+        // Primary path: [String: DTO]
+        if let dict = try? decoder.decode([String: InsightPreferenceDTO].self, from: data) {
+            var result: UserPreferencesDictionary = [:]
+            for (raw, dto) in dict {
+                if let type = InsightType(rawValue: raw) {
+                    result[type] = makeModel(from: dto, type: type)
+                }
+            }
+            return result
+        }
+        // Fallback: array of records
+        if let records = try? decoder.decode([UserPreferenceRecordDTO].self, from: data) {
+            var result: UserPreferencesDictionary = [:]
+            for record in records {
+                if let type = InsightType(rawValue: record.insightType) {
+                    result[type] = makeModel(from: record.preference, type: type)
+                }
+            }
+            return result
+        }
+        // If all decoding paths fail, throw
+        throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Unsupported user preferences format"))
+    }
+    
+    private func encodeTriggers(_ triggers: [ContextualTrigger]) throws -> Data {
+        let dtos = triggers.map { makeDTO(from: $0) }
+        let encoder = JSONEncoder()
+        return try encoder.encode(dtos)
+    }
+    
+    private func decodeTriggers(from data: Data) throws -> [ContextualTrigger] {
+        let decoder = JSONDecoder()
+        let dtos = try decoder.decode([ContextualTriggerDTO].self, from: data)
+        return dtos.map { makeModel(from: $0) }
+    }
+    
+    @MainActor private func flushPendingUpdates() {
         guard !pendingPreferenceUpdates.isEmpty else { return }
         
         let updateCount = pendingPreferenceUpdates.count
         
         do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(userPreferences)
+            let data = try encodeUserPreferences(userPreferences)
             userDefaults.set(data, forKey: Keys.userPreferences)
             pendingPreferenceUpdates.removeAll()
             logger.debug("Flushed \(updateCount) preference updates")
@@ -424,29 +532,27 @@ final class PersonalizationEngine: ObservableObject {
 
     @MainActor func persistUserPreferences() {
         do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(userPreferences)
+            let data = try encodeUserPreferences(userPreferences)
             userDefaults.set(data, forKey: Keys.userPreferences)
         } catch {
             logger.error("Failed to persist user preferences: \(error)")
         }
     }
     
-    @MainActor private func saveContextualTriggers() async {
+    @MainActor private func saveContextualTriggers() {
         do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(contextualTriggers)
+            let data = try encodeTriggers(contextualTriggers)
             userDefaults.set(data, forKey: Keys.contextualTriggers)
         } catch {
             logger.error("Failed to save contextual triggers: \(error)")
         }
     }
 
-    @MainActor private func loadUserPreferences() async {
+    @MainActor private func loadUserPreferences() {
         // Load user preferences
         if let data = userDefaults.data(forKey: Keys.userPreferences) {
             do {
-                userPreferences = try JSONDecoder().decode(UserPreferencesDictionary.self, from: data)
+                userPreferences = try decodeUserPreferences(from: data)
             } catch {
                 logger.error("Failed to load user preferences: \(error)")
                 userPreferences = [:]
@@ -456,7 +562,7 @@ final class PersonalizationEngine: ObservableObject {
         // Load contextual triggers - preserve defaults if loading fails
         if let data = userDefaults.data(forKey: Keys.contextualTriggers) {
             do {
-                let loadedTriggers = try JSONDecoder().decode([ContextualTrigger].self, from: data)
+                let loadedTriggers = try decodeTriggers(from: data)
                 if !loadedTriggers.isEmpty {
                     contextualTriggers = loadedTriggers
                 }
@@ -484,8 +590,8 @@ final class PersonalizationEngine: ObservableObject {
 
     func generatePersonalizedInsights(
         checkIns: [WorkplaceCheckInData],
-        breathingLogs: [BreathingSessionData] = [],
-        journalEntries: [WorkplaceJournalEntryData] = [],
+        breathingLogs: [BreathingData] = [],
+        journalEntries: [WorkplaceJournalEntry] = [],
         goals: [UserGoalData] = [],
         forLastDays days: Int = 7,
         referenceDate: Date = Date()
@@ -523,10 +629,8 @@ final class PersonalizationEngine: ObservableObject {
         // Filter and adapt insights
         insights = filterInsightsByComplexity(insights)
         
-        // Ensure insights adaptation happens on the main thread
-        Task { @MainActor in
-            insights = insights.map { self.adaptInsightForProfile($0) }
-        }
+        // Ensure insights adaptation happens on the main thread before returning
+        insights = insights.map { self.adaptInsightForProfile($0) }
         
         // Sort by priority and engagement
         insights.sort { lhs, rhs in
@@ -546,7 +650,7 @@ final class PersonalizationEngine: ObservableObject {
     // MARK: - Cleanup
     
     func cleanup() async {
-        await flushPendingUpdates()
+        flushPendingUpdates()
         cancellables.removeAll()
         logger.info("PersonalizationEngine cleanup completed")
     }

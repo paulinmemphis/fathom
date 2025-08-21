@@ -153,7 +153,7 @@ class InsightEngine {
         return messages.randomElement() ?? messages.first ?? ""
     }
 
-        func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoal] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [AppInsight] {
+        func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoalData] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [AppInsight] {
                 var generatedInsights: [AppInsight] = []
 
         // MARK: - Phase 2: Update Adaptive Thresholds
@@ -389,7 +389,7 @@ class InsightEngine {
     private func generateRemainingInsightRules(checkIns: [CheckInData], 
                                              breathingLogs: [BreathingData], 
                                              journalEntries: [WorkplaceJournalEntry], 
-                                             goals: [UserGoal], 
+                                             goals: [UserGoalData], 
                                              days: Int, 
                                              referenceDate: Date, 
                                              calendar: Calendar, 

@@ -225,8 +225,8 @@ struct NotificationSettingsView: View {
             .onAppear {
                 loadNotificationSettings()
                 Task {
-                    self.userRole = await personalizationEngine.userRole
-                    self.contextualTriggers = await personalizationEngine.getContextualTriggers()
+                    self.userRole = personalizationEngine.userRole
+                    self.contextualTriggers = personalizationEngine.getContextualTriggers()
                 }
             }
             .onChange(of: enableSmartNotifications) { _, newValue in

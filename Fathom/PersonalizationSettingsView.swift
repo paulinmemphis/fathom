@@ -39,7 +39,7 @@ struct PersonalizationSettingsView: View {
                             do {
                                 try personalizationEngine.setUserProfile(role: selectedRole, industry: selectedIndustry)
                                 try personalizationEngine.setInsightComplexity(insightComplexity)
-                                await personalizationEngine.persistUserPreferences()
+                                personalizationEngine.persistUserPreferences()
                                 dismiss()
                             } catch {
                                 // Handle or log the error appropriately

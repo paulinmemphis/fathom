@@ -10,50 +10,67 @@ import CoreData
 
 struct ContentView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
+    @State private var selection: AppScreen? = .today
 
     var body: some View {
-        NavigationView {
-            TabView {
-                // MARK: - Today Tab (New Primary Tab)
-                TodayView()
-                    .tabItem {
-                        Label("Today", systemImage: "house.fill")
-                    }
+        NavigationSplitView {
+            Sidebar(selection: $selection)
+                .environmentObject(subscriptionManager)
+        } detail: {
+            if let selection = selection {
+                selection.destination
                     .environmentObject(subscriptionManager)
-
-                // MARK: - Workplaces Tab
-                WorkplaceListView()
-                    .tabItem {
-                        Label("Workplaces", systemImage: "building.2.fill")
-                    }
-                    .environmentObject(subscriptionManager)
-
-                // MARK: - Wellness Tab (Combined Breathing & Tools)
-                WellnessView()
-                    .tabItem {
-                        Label("Wellness", systemImage: "heart.fill")
-                    }
-                    .environmentObject(subscriptionManager)
-
-                // MARK: - Progress Tab (Combined Insights & Achievements)
-                UserProgressView()
-                    .tabItem {
-                        Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
-                    }
-                    .environmentObject(subscriptionManager)
-                
-                // MARK: - Profile Tab (Settings & Subscription)
-                ProfileView()
-                    .tabItem {
-                        Label("Profile", systemImage: "person.circle.fill")
-                    }
-                    .environmentObject(subscriptionManager)
-            }
-            .onAppear {
-                // Perform any initial setup when the main view appears
-                print("Fathom app is running.")
+            } else {
+                Text("Select a category")
             }
         }
+    }
+}
+
+// MARK: - Sidebar & Navigation Model
+
+enum AppScreen: CaseIterable, Identifiable {
+    case today, workplaces, wellness, progress, profile
+    
+    var id: AppScreen { self }
+    
+    var label: Label<Text, Image> {
+        switch self {
+        case .today:
+            return Label("Today", systemImage: "house.fill")
+        case .workplaces:
+            return Label("Workplaces", systemImage: "building.2.fill")
+        case .wellness:
+            return Label("Wellness", systemImage: "heart.fill")
+        case .progress:
+            return Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
+        case .profile:
+            return Label("Profile", systemImage: "person.circle.fill")
+        }
+    }
+    
+    @MainActor
+    @ViewBuilder
+    var destination: some View {
+        switch self {
+        case .today: TodayView()
+        case .workplaces: WorkplaceListView()
+        case .wellness: WellnessView()
+        case .progress: UserProgressView()
+        case .profile: ProfileView()
+        }
+    }
+}
+
+@MainActor
+struct Sidebar: View {
+    @Binding var selection: AppScreen?
+    
+    var body: some View {
+        List(AppScreen.allCases, selection: $selection) { screen in
+            screen.label
+        }
+        .navigationTitle("Fathom")
     }
 }
 

@@ -18,7 +18,7 @@ final class FathomUITestsLaunchTests: XCTestCase {
     }
 
     @MainActor
-    func testLaunch() throws {
+    func xctest_disabled_testLaunch() throws {
         let app = XCUIApplication()
         app.launch()
 

@@ -1,199 +1,119 @@
 import Foundation
 import CoreData
 
-// MARK: - Bridge Extensions
-// These extensions convert between Core Data entities and PersonalizationEngine types
+// MARK: - Bridge DTO Initializers
+// These extensions convert between Core Data entities and PersonalizationEngine DTOs
 
-/*
- // Placeholder: Implement this when WorkplaceCheckIn Core Data entity is finalized
- extension WorkplaceCheckInData {
-     init(from coreDataCheckIn: Fathom.WorkplaceCheckIn) {
-         self.init(
-             id: coreDataCheckIn.id ?? UUID(),
-             timestamp: coreDataCheckIn.checkInTime ?? Date(),
-             stressLevel: Double(coreDataCheckIn.stressRating) / 5.0, // Example conversion
-             focusLevel: Double(coreDataCheckIn.focusRating) / 5.0, // Example conversion
-             sessionDuration: Int(coreDataCheckIn.sessionDuration)
-         )
-     }
- }
- */
+extension BreathingData {
+    init(from coreDataExercise: Fathom.BreathingExercise) {
+        self.init(
+            id: coreDataExercise.id ?? UUID(),
+            completedAt: coreDataExercise.completedAt ?? Date(),
+            duration: coreDataExercise.duration,
+            exerciseTypes: coreDataExercise.exerciseTypes ?? "unknown"
+        )
+    }
+}
 
-/*
- // Placeholder: Implement this when Insight Core Data entity is created
- extension InsightData {
-     init(from coreDataInsight: Any) {
-         self.init(
-             type: .suggestion, // or get from Core Data
-             message: "Default message", // or get from Core Data
-             priority: 5, // or get from Core Data
-             confidence: 0.8 // or get from Core Data
-         )
-     }
- }
- */
+extension WorkplaceJournalEntryData {
+    init(from coreDataEntry: Fathom.JournalEntry) {
+        let components = coreDataEntry.text?.split(separator: "\n", maxSplits: 1).map(String.init) ?? []
+        let title = components.first ?? ""
+        let content = components.count > 1 ? components[1] : ""
+        let stress = (5.0 - Double(coreDataEntry.moodRating)) / 4.0
 
-// MARK: - PersonalizationEngine Extension for Core Data Integration
+        self.init(
+            id: coreDataEntry.id ?? UUID(),
+            timestamp: coreDataEntry.timestamp ?? Date(),
+            title: title,
+            content: content,
+            stressLevel: stress,
+            focusScore: 0.0 // JournalEntry does not have a focus score
+        )
+    }
+}
+
+extension WorkplaceCheckInData {
+    init(from coreDataCheckIn: Fathom.WorkplaceCheckIn) {
+        self.init(
+            id: coreDataCheckIn.id ?? UUID(),
+            timestamp: coreDataCheckIn.checkInTime ?? Date(),
+            stressLevel: coreDataCheckIn.stressLevel,
+            focusLevel: coreDataCheckIn.focusLevel,
+            sessionDuration: Int(coreDataCheckIn.sessionDuration)
+        )
+    }
+}
+
+// MARK: - PersonalizationBridge Class
 
 @available(iOS 14.0, *)
-extension PersonalizationEngine {
-    
-    /// Convert Core Data BreathingExercise array to BreathingSessionData array
-    func convertBreathingExercises(_ coreDataExercises: [Fathom.BreathingExercise]) -> [BreathingData] {
-        return coreDataExercises.map { BreathingData(from: $0) }
+@MainActor
+final class PersonalizationBridge {
+    private let context: NSManagedObjectContext
+    private let engine: PersonalizationEngine
+
+    init(context: NSManagedObjectContext, engine: PersonalizationEngine) {
+        self.context = context
+        self.engine = engine
     }
-    
-    /// Convert Core Data WorkplaceCheckIn array to WorkplaceCheckInData array
-    func convertWorkplaceCheckIns(_ coreDataCheckIns: [Fathom.WorkplaceCheckIn]) -> [WorkplaceCheckInData] {
-        return coreDataCheckIns.map { checkIn in
-            // Attempt to read a workplace name if present
-            let workplaceName = checkIn.workplace?.value(forKey: "name") as? String
-            return WorkplaceCheckInData(
-                workplaceName: workplaceName,
-                sessionDuration: checkIn.sessionDuration,
-                stressLevel: checkIn.stressLevel,
-                focusLevel: checkIn.focusLevel,
-                timestamp: checkIn.timestamp
-            )
-        }
-    }
-    
-    /// Convert Core Data WorkplaceJournalEntry array to WorkplaceJournalEntryData array
-    func convertJournalEntries(_ coreDataEntries: [NSManagedObject]) -> [WorkplaceJournalEntry] {
-        return coreDataEntries.compactMap { entry in
-    // Map NSManagedObject to WorkplaceJournalEntry
-    // This assumes properties: title, text, date, stressLevel, focusScore, workProjects
-    guard let title = entry.value(forKey: "title") as? String,
-          let text = entry.value(forKey: "text") as? String,
-          let date = entry.value(forKey: "date") as? Date else { return nil }
-    let stressLevel = entry.value(forKey: "stressLevel") as? Double
-    let focusScore = entry.value(forKey: "focusScore") as? Double
-    let workProjects = entry.value(forKey: "workProjects") as? [String]
-    return WorkplaceJournalEntry(
-        title: title,
-        text: text,
-        date: date,
-        stressLevel: stressLevel,
-        focusScore: focusScore,
-        workProjects: workProjects
-    )
-}
-    }
-    
+
     /// Generate insights using Core Data entities
-    func generatePersonalizedInsights(
-        from context: NSManagedObjectContext,
+    func generateInsightsFromCoreData(
         forLastDays days: Int = 7,
         referenceDate: Date = Date()
-    ) async -> [InsightData] {
-        
-        // Calculate date range
+    ) async -> [AppInsight] {
         let startDate = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
-        let datePredicate = NSPredicate(format: "completedAt >= %@", startDate as NSDate)
-        
+
+        let fetchedDataResult: Result<(breathing: [BreathingData], checkIns: [WorkplaceCheckInData], journal: [WorkplaceJournalEntryData]), Error>
         do {
-            // Fetch breathing exercises
-            let breathingRequest: NSFetchRequest<Fathom.BreathingExercise> = Fathom.BreathingExercise.fetchRequest()
-            breathingRequest.predicate = datePredicate
-            let coreDataBreathingExercises = try context.fetch(breathingRequest)
-            let breathingData = convertBreathingExercises(coreDataBreathingExercises)
-            
-            // Fetch workplace check-ins (if the entity exists)
-            var checkInData: [WorkplaceCheckInData] = []
-            if let _ = NSEntityDescription.entity(forEntityName: "WorkplaceCheckIn", in: context) {
-                let checkInRequest = NSFetchRequest<Fathom.WorkplaceCheckIn>(entityName: "WorkplaceCheckIn")
-                checkInRequest.predicate = NSPredicate(format: "timestamp >= %@", startDate as NSDate)
-                let coreDataCheckIns = try context.fetch(checkInRequest)
-                checkInData = convertWorkplaceCheckIns(coreDataCheckIns)
-            }
-            
-            // Fetch journal entries (if the entity exists)
-            var journalData: [WorkplaceJournalEntry] = []
-            if let _ = NSEntityDescription.entity(forEntityName: "WorkplaceJournalEntry", in: context) {
-                let journalRequest = NSFetchRequest<NSManagedObject>(entityName: "WorkplaceJournalEntry")
-                journalRequest.predicate = NSPredicate(format: "date >= %@", startDate as NSDate)
-                let coreDataJournalEntries = try context.fetch(journalRequest)
-                journalData = convertJournalEntries(coreDataJournalEntries)
-            }
-            
-            // Create empty goals array for now - implement when UserGoal Core Data entity is available
-            let goals: [UserGoalData] = []
-            
-            return await generatePersonalizedInsights(
-                checkIns: checkInData,
-                breathingLogs: breathingData,
-                journalEntries: journalData,
+            let breathingData = try self.fetchBreathingExercises(since: startDate)
+            let checkInData = try self.fetchWorkplaceCheckIns(since: startDate)
+            let journalData = try self.fetchJournalEntries(since: startDate)
+            fetchedDataResult = .success((breathingData, checkInData, journalData))
+        } catch {
+            fetchedDataResult = .failure(error)
+        }
+
+        switch fetchedDataResult {
+        case .failure(let error):
+            print("Failed to fetch Core Data entities: \(error.localizedDescription)")
+            return []
+        case .success(let data):
+            let goals: [PersonalizationGoalData] = [] // Goals are not in Core Data yet
+
+            let insights = await self.engine.generatePersonalizedInsights(
+                checkIns: data.checkIns,
+                breathingLogs: data.breathing,
+                journalEntries: data.journal,
                 goals: goals,
                 forLastDays: days,
                 referenceDate: referenceDate
             )
-            
-        } catch {
-            // Handle fetch errors
-            print("Failed to fetch Core Data entities: \(error)")
-            return []
+            return insights.map { AppInsight(from: $0) }
         }
     }
-    
-    /// Convenience method to generate insights for a specific workplace
-    func generateWorkplaceSpecificInsights(
-        from context: NSManagedObjectContext,
-        workplaceName: String,
-        forLastDays days: Int = 7,
-        referenceDate: Date = Date()
-    ) async -> [InsightData] {
-        
-        let startDate = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
-        
-        do {
-            // Fetch workplace-specific check-ins
-            var workplaceCheckIns: [WorkplaceCheckInData] = []
-            if let _ = NSEntityDescription.entity(forEntityName: "WorkplaceCheckIn", in: context) {
-                let checkInRequest = NSFetchRequest<Fathom.WorkplaceCheckIn>(entityName: "WorkplaceCheckIn")
-                checkInRequest.predicate = NSPredicate(
-                    format: "timestamp >= %@ AND workplace.name == %@",
-                    startDate as NSDate,
-                    workplaceName
-                )
-                let coreDataCheckIns = try context.fetch(checkInRequest)
-                workplaceCheckIns = convertWorkplaceCheckIns(coreDataCheckIns)
-            }
-            
-            // Fetch all breathing exercises for the time period
-            let breathingRequest: NSFetchRequest<Fathom.BreathingExercise> = Fathom.BreathingExercise.fetchRequest()
-            breathingRequest.predicate = NSPredicate(format: "completedAt >= %@", startDate as NSDate)
-            let coreDataBreathingExercises = try context.fetch(breathingRequest)
-            let breathingData = convertBreathingExercises(coreDataBreathingExercises)
-            
-            // Fetch workplace-specific journal entries if available
-            var journalData: [WorkplaceJournalEntry] = []
-            if let _ = NSEntityDescription.entity(forEntityName: "WorkplaceJournalEntry", in: context) {
-                let journalRequest = NSFetchRequest<NSManagedObject>(entityName: "WorkplaceJournalEntry")
-                journalRequest.predicate = NSPredicate(format: "date >= %@", startDate as NSDate)
-                let coreDataJournalEntries = try context.fetch(journalRequest)
-                journalData = convertJournalEntries(coreDataJournalEntries)
-            }
-            
-            let goals: [UserGoalData] = []
-            
-            let allInsights = await generatePersonalizedInsights(
-                checkIns: workplaceCheckIns,
-                breathingLogs: breathingData,
-                journalEntries: journalData,
-                goals: goals,
-                forLastDays: days,
-                referenceDate: referenceDate
-            )
-            
-            // Filter for workplace-specific insights
-            return allInsights.filter { insight in
-                insight.type == InsightType.workplaceSpecific || 
-                insight.message.localizedCaseInsensitiveContains(workplaceName)
-            }
-            
-        } catch {
-            print("Failed to fetch workplace-specific data: \(error)")
-            return []
-        }
+
+    // MARK: - Private Fetch Helpers
+
+    private func fetchBreathingExercises(since date: Date) throws -> [BreathingData] {
+        let request: NSFetchRequest<Fathom.BreathingExercise> = Fathom.BreathingExercise.fetchRequest()
+        request.predicate = NSPredicate(format: "completedAt >= %@", date as NSDate)
+        let results = try context.fetch(request)
+        return results.map(BreathingData.init)
+    }
+
+    private func fetchWorkplaceCheckIns(since date: Date) throws -> [WorkplaceCheckInData] {
+        let request: NSFetchRequest<Fathom.WorkplaceCheckIn> = Fathom.WorkplaceCheckIn.fetchRequest()
+        request.predicate = NSPredicate(format: "checkInTime >= %@", date as NSDate)
+        let results = try context.fetch(request)
+        return results.map(WorkplaceCheckInData.init)
+    }
+
+    private func fetchJournalEntries(since date: Date) throws -> [WorkplaceJournalEntryData] {
+        let request: NSFetchRequest<Fathom.JournalEntry> = Fathom.JournalEntry.fetchRequest()
+        request.predicate = NSPredicate(format: "timestamp >= %@", date as NSDate)
+        let results = try context.fetch(request)
+        return results.map(WorkplaceJournalEntryData.init)
     }
 }

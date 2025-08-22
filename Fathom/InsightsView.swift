@@ -3,28 +3,11 @@ import CoreData
 
 // Main Insights View
 struct InsightsView: View {
+
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingPaywall = false
-    @ObservedObject private var personalizationEngine = PersonalizationEngine.shared
-    
-    // FetchRequest for CheckIn entities
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Fathom.WorkplaceCheckIn.checkInTime, ascending: false)],
-        animation: .default)
-    private var checkInLogs: FetchedResults<Fathom.WorkplaceCheckIn>
-    
-    // FetchRequest for BreathingExercise entities
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Fathom.BreathingExercise.completedAt, ascending: false)],
-        animation: .default)
-    private var breathingLogs: FetchedResults<Fathom.BreathingExercise>
-
-    // Access to journal entries
-    @StateObject private var journalStore = WorkplaceJournalStore.shared
-
-    // Access to user goals
-    @StateObject private var goalsManager = UserGoalsManager.shared
+    private let personalizationEngine = PersonalizationEngine.shared
 
     @State private var insights: [AppInsight] = []
     @State private var showingPersonalizationSettings = false // This might be unused if settings are in onboarding
@@ -60,7 +43,7 @@ struct InsightsView: View {
                                 .padding(.horizontal)
                             
                             if insights.isEmpty {
-                                EmptyInsightsView()
+                                EmptyInsightsView(context: viewContext)
                             } else {
                                 InsightGridView(insights: insights, horizontalSizeClass: horizontalSizeClass, interactionHandler: handleInsightInteraction)
                                     .padding(.horizontal)
@@ -89,30 +72,18 @@ struct InsightsView: View {
     
 
     
+    @MainActor
     private func loadPersonalizedInsights() {
         Task {
-            // Map Core Data objects to data structs
-            let checkInsData = personalizationEngine.convertWorkplaceCheckIns(Array(checkInLogs))
-            let breathingData = breathingLogs.map { BreathingData(from: $0) }
-            let journalData = journalStore.entries
-            let goalsArray = goalsManager.goals
-            
-            let generatedInsights = await personalizationEngine.generatePersonalizedInsights(
-                checkIns: checkInsData,
-                breathingLogs: breathingData,
-                journalEntries: journalData,
-                goals: goalsArray,
-                forLastDays: 7
-            )
-            
-            await MainActor.run {
-                self.insights = generatedInsights.map { AppInsight(message: $0.message, type: $0.type, priority: $0.priority, confidence: $0.confidence) }.filter { insight in
-                    !(interactionHistory[insight.id]?.dismissed ?? false)
-                }
-                self.userRole = personalizationEngine.userRole
-                self.userIndustry = personalizationEngine.userIndustry
-                self.currentComplexity = personalizationEngine.insightComplexity
+            let bridge = PersonalizationBridge(context: viewContext, engine: personalizationEngine)
+            let insightData = await bridge.generateInsightsFromCoreData(forLastDays: 7, referenceDate: Date())
+
+            self.insights = insightData.filter { insight in
+                !(interactionHistory[insight.id]?.dismissed ?? false)
             }
+            self.userRole = personalizationEngine.userRole
+            self.userIndustry = personalizationEngine.userIndustry
+            self.currentComplexity = personalizationEngine.insightComplexity
         }
     }
     
@@ -143,6 +114,8 @@ struct InsightsView: View {
 // MARK: - Extracted Subviews
 
 private struct EmptyInsightsView: View {
+    let context: NSManagedObjectContext
+
     var body: some View {
         VStack(spacing: 16) {
             UserProgressView()
@@ -353,7 +326,6 @@ struct InsightsView_Previews: PreviewProvider {
 
         return insightsView
             .environmentObject(mockSubscriptionManager)
-            .environmentObject(mockPersonalizationEngine)
             .environment(\.managedObjectContext, context)
     }
 }

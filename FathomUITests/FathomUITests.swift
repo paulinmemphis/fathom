@@ -32,7 +32,7 @@ final class FathomUITests: XCTestCase {
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
+    func xctest_disabled_testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()

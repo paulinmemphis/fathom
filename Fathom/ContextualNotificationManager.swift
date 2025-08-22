@@ -38,57 +38,6 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         self.notificationPermissionGranted = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
     }
     
-    // MARK: - Contextual Notifications
-    
-    func scheduleContextualNotification(for trigger: ContextualTrigger, context: WorkplaceCheckInData) {
-        guard notificationPermissionGranted else { return }
-        
-        let content = UNMutableNotificationContent()
-        content.title = getContextualTitle(for: trigger, context: context)
-        content.body = getContextualBody(for: trigger, context: context)
-        content.sound = .default
-        content.categoryIdentifier = "CONTEXTUAL_NOTIFICATION"
-        
-        // Set badge based on priority
-        content.badge = NSNumber(value: max(1, Int(trigger.priority)))
-        
-        // Fixed: Properly handle optional data encoding
-        var userInfoDict: [String: Any] = [
-            "triggerType": trigger.type.rawValue,
-            "triggerName": trigger.name,
-            "scheduledAt": Date().timeIntervalSince1970
-        ]
-        
-        // Safely attach context data using property-list types only
-        var contextInfo: [String: Any] = [
-            "sessionDuration": context.sessionDuration,
-            "timestamp": context.timestamp
-        ]
-        if let name = context.workplaceName { contextInfo["workplaceName"] = name }
-        if let stress = context.stressLevel { contextInfo["stressLevel"] = stress }
-        if let focus = context.focusLevel { contextInfo["focusLevel"] = focus }
-        userInfoDict["context"] = contextInfo
-        
-        content.userInfo = userInfoDict
-        
-        // Schedule immediately for contextual triggers
-        let request = UNNotificationRequest(
-            identifier: "contextual_\(trigger.id.uuidString)",
-            content: content,
-            trigger: nil // nil means immediate delivery
-        )
-        
-        Task {
-            do {
-                try await notificationCenter.add(request)
-                print("Scheduled contextual notification: \(trigger.name)")
-                await self.updateActiveNotifications()
-            } catch {
-                print("Error scheduling contextual notification: \(error)")
-            }
-        }
-    }
-    
     func scheduleSmartNotifications() {
         guard notificationPermissionGranted else { return }
         
@@ -196,38 +145,6 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         }
     }
     
-    // MARK: - Notification Content Generation
-    
-    private func getContextualTitle(for trigger: ContextualTrigger, context: WorkplaceCheckInData) -> String {
-        switch trigger.type {
-        case .highStress:
-            return "High Stress Detected"
-        case .lowFocus:
-            return "Focus Break Needed"
-        case .longSession:
-            return "Long Work Session"
-        case .workplacePattern:
-            return "Workplace Pattern Alert"
-        case .reflectionPrompt:
-            return "Reflection Time"
-        }
-    }
-    
-    private func getContextualBody(for trigger: ContextualTrigger, context: WorkplaceCheckInData) -> String {
-        switch trigger.type {
-        case .highStress:
-            return "Consider taking a breathing break or short walk. Your stress levels have been elevated."
-        case .lowFocus:
-            return "Your focus seems to be declining. Try a 5-minute mindfulness exercise."
-        case .longSession:
-            return "You've been working for \(context.sessionDuration) minutes. Time for a break!"
-        case .workplacePattern:
-            return "Based on your patterns at \(context.workplaceName ?? "this location"), consider adjusting your approach."
-        case .reflectionPrompt:
-            return "How are you feeling about your work today? Take a moment to reflect."
-        }
-    }
-    
     // MARK: - Notification Management
     
     func cancelNotifications(withPrefix prefix: String) {
@@ -278,13 +195,7 @@ class ContextualNotificationManager: NSObject, ObservableObject, UNUserNotificat
         let userInfo = response.notification.request.content.userInfo
         
         // Handle different notification types
-        if identifier.hasPrefix("contextual_") {
-            // Handle contextual notification response
-            if let triggerType = userInfo["triggerType"] as? String {
-                print("User responded to contextual notification: \(triggerType)")
-                // Could trigger specific actions based on trigger type
-            }
-        } else if identifier.hasPrefix("smart_") {
+        if identifier.hasPrefix("smart_") {
             // Handle smart notification response
             print("User responded to smart notification: \(identifier)")
         }

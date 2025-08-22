@@ -100,28 +100,6 @@ struct CulturalNorms: Sendable, Equatable {
 
 // MARK: - App Data Models
 
-struct WorkplaceCheckInData: Sendable {
-    let workplaceName: String?
-    let sessionDuration: Int
-    let stressLevel: Double?
-    let focusLevel: Double?
-    let timestamp: Date
-
-    init(
-        workplaceName: String? = nil,
-        sessionDuration: Int = 0,
-        stressLevel: Double? = nil,
-        focusLevel: Double? = nil,
-        timestamp: Date = Date()
-    ) {
-        self.workplaceName = workplaceName
-        self.sessionDuration = max(0, sessionDuration)
-        self.stressLevel = stressLevel.map { max(0.0, min(1.0, $0)) }
-        self.focusLevel = focusLevel.map { max(0.0, min(1.0, $0)) }
-        self.timestamp = timestamp
-    }
-}
-
 // MARK: - Core Data Stack with iOS 26 Beta Fixes
 
 final class FathomCoreDataStack: ObservableObject {

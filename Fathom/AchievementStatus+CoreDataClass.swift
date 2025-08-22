@@ -10,10 +10,6 @@ import Foundation
 import CoreData
 
 @objc(AchievementStatus)
-public class AchievementStatus: NSManagedObject {
-    
-    @nonobjc nonisolated public override init(entity: NSEntityDescription, insertInto context: NSManagedObjectContext?) {
-        super.init(entity: entity, insertInto: context)
-    }
+nonisolated public class AchievementStatus: NSManagedObject {
 
 }

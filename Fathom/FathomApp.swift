@@ -7,7 +7,9 @@
 
 import SwiftUI
 import CoreData // Added CoreData import
+#if canImport(FirebaseCore)
 import FirebaseCore
+#endif
 
 @main
 
@@ -15,14 +17,15 @@ import FirebaseCore
 
 struct FathomApp: App {
     init() {
+        #if canImport(FirebaseCore)
         FirebaseApp.configure()
+        #endif
     }
     // MARK: - State Objects for Core Services
     @StateObject private var persistenceController = PersistenceController.shared
     @StateObject private var subscriptionManager = SubscriptionManager()
     @StateObject private var appLockManager = AppLockManager()
     @StateObject private var themeManager = ProfessionalThemeManager()
-    @StateObject private var journalStore = WorkplaceJournalStore()
     @StateObject private var locationManager = LocationManager()
 
     @State private var isDataLoaded = false
@@ -52,36 +55,13 @@ struct FathomApp: App {
             } else if showOnboarding {
                 OnboardingView(isPresented: $showOnboarding)
             } else {
-                MainTabView_Workplace()
+                MainTabView()
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
                     .environmentObject(subscriptionManager)
                     .environmentObject(appLockManager)
                     .environmentObject(themeManager)
-                    .environmentObject(journalStore)
             }
         }
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    FirebaseApp.configure()
-
-    return true
-  }
-}
-
-struct YourApp: App {
-  // register app delegate for Firebase setup
-  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-
-
-  var body: some Scene {
-    WindowGroup {
-      NavigationView {
-        ContentView()
-      }
-    }
-  }
-}

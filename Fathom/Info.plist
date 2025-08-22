@@ -9,5 +9,7 @@
 		<string>external-accessory</string>
 		<string>processing</string>
 	</array>
+	<key>NSRemindersUsageDescription</key>
+	<string>Fathom uses Reminders to help you set and track your rest and productivity goals.</string>
 </dict>
 </plist>

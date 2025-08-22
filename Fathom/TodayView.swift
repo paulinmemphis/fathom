@@ -6,7 +6,7 @@ struct TodayView: View {
     @EnvironmentObject private var subscriptionManager: SubscriptionManager
     @StateObject private var workplaceManager = WorkplaceManager.shared
     @StateObject private var userStatsManager = UserStatsManager.shared
-    @StateObject private var personalizationEngine = PersonalizationEngine.shared
+    private let personalizationEngine = PersonalizationEngine.shared
     
     @State private var showingBreathingExercise = false
     @State private var showingWorkplaceEntry = false
@@ -49,6 +49,8 @@ struct TodayView: View {
             }
             .padding(.horizontal)
             .padding(.bottom, 24)
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
         }
         .navigationTitle("Today")
         .navigationBarTitleDisplayMode(.large)
@@ -65,17 +67,15 @@ struct TodayView: View {
             BreathingExerciseView()
         }
         .sheet(isPresented: $showingWorkplaceEntry) {
-            WorkplaceEntryView(workplaceToEdit: nil)
+            JournalEntryComposeView(entryToEdit: nil)
                 .environmentObject(subscriptionManager)
         }
         .sheet(isPresented: $showingInsights) {
             InsightsView()
         }
         .sheet(isPresented: $showingReflection) {
-            // Temporarily commented out due to 'DailyReflectionView' not found in scope error
-            // DailyReflectionView()
-            //     .environment(\.managedObjectContext, viewContext)
-            Text("Placeholder for Daily Reflection View")
+             JournalEntryComposeView(entryToEdit: nil)
+                 .environment(\.managedObjectContext, viewContext)
         }
         .onAppear {
             Task {

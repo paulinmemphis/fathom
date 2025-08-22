@@ -62,7 +62,7 @@ class AnalyticsService {
         Analytics.logEvent("subscription_option_selected", parameters: [
             "product_id": productID,
             "product_name": productName,
-            "product_price": productPrice,
+            "product_price": NSDecimalNumber(decimal: productPrice).doubleValue,
             "product_currency": currency
         ])
         #endif
@@ -85,12 +85,12 @@ class AnalyticsService {
                 [
                     AnalyticsParameterItemID: productID,
                     AnalyticsParameterItemName: productName,
-                    AnalyticsParameterPrice: productPrice,
+                    AnalyticsParameterPrice: NSDecimalNumber(decimal: productPrice).doubleValue,
                     AnalyticsParameterCurrency: currency
                 ]
             ],
             AnalyticsParameterCurrency: currency,
-            AnalyticsParameterValue: productPrice
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice).doubleValue
         ])
         #endif
     }
@@ -102,12 +102,12 @@ class AnalyticsService {
                 [
                     AnalyticsParameterItemID: productID,
                     AnalyticsParameterItemName: productName,
-                    AnalyticsParameterPrice: productPrice,
+                    AnalyticsParameterPrice: NSDecimalNumber(decimal: productPrice).doubleValue,
                     AnalyticsParameterCurrency: currency
                 ]
             ],
             AnalyticsParameterCurrency: currency,
-            AnalyticsParameterValue: productPrice
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice).doubleValue
         ])
         #endif
     }
@@ -119,7 +119,7 @@ class AnalyticsService {
             AnalyticsParameterItemID: productID,
             AnalyticsParameterItemName: productName,
             AnalyticsParameterCurrency: currency,
-            AnalyticsParameterValue: productPrice
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice).doubleValue
         ])
         #endif
     }
@@ -130,7 +130,7 @@ class AnalyticsService {
             AnalyticsParameterItemID: productID,
             AnalyticsParameterItemName: productName,
             AnalyticsParameterCurrency: currency,
-            AnalyticsParameterValue: productPrice
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice).doubleValue
         ])
         #endif
     }
@@ -141,7 +141,7 @@ class AnalyticsService {
             AnalyticsParameterItemID: productID,
             AnalyticsParameterItemName: productName,
             AnalyticsParameterCurrency: currency,
-            AnalyticsParameterValue: productPrice,
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice).doubleValue,
             "error_reason": error
         ])
         #endif
@@ -153,7 +153,7 @@ class AnalyticsService {
             AnalyticsParameterItemID: productID ?? "",
             AnalyticsParameterItemName: productName ?? "",
             AnalyticsParameterCurrency: currency ?? "",
-            AnalyticsParameterValue: productPrice ?? 0
+            AnalyticsParameterValue: NSDecimalNumber(decimal: productPrice ?? 0).doubleValue
         ])
         #endif
     }

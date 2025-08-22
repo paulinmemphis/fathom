@@ -25,6 +25,8 @@ struct FocusTimerView: View {
             
             Text(timeString(time: timeRemaining))
                 .font(.system(size: 80, weight: .thin, design: .monospaced))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .padding()
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())

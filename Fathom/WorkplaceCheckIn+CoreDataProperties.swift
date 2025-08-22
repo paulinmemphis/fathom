@@ -15,7 +15,7 @@ extension Fathom.WorkplaceCheckIn {
     @NSManaged public var focusRating: Int16
     @NSManaged public var stressRating: Int16
     @NSManaged public var sessionNote: String?
-    @NSManaged public var workplace: NSManagedObject?
+    @NSManaged public var workplace: Workplace?
 }
 
 // MARK: - Convenience Properties

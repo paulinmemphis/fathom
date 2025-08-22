@@ -28,9 +28,6 @@
         <relationship name="relatedPreferences" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserPreferenceEntity" inverseName="contextualTrigger" inverseEntity="UserPreferenceEntity"/>
         <relationship name="userPreference" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserPreferenceEntity" inverseName="triggers" inverseEntity="UserPreferenceEntity"/>
     </entity>
-    <entity name="Item" representedClassName="Item" syncable="YES">
-        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-    </entity>
     <entity name="JournalEntry" representedClassName="JournalEntry" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isDraft" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

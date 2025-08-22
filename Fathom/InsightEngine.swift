@@ -22,6 +22,34 @@ struct AppInsight: Identifiable, Hashable {
     static func == (lhs: AppInsight, rhs: AppInsight) -> Bool {
         lhs.id == rhs.id
     }
+
+    // Initializer to convert from InsightData
+    init(from insightData: InsightData) {
+        self.message = insightData.message
+        self.type = insightData.type
+        self.priority = insightData.priority
+        self.confidence = insightData.confidence
+        // Set default values for properties not in InsightData
+        self.isAnomaly = false
+        self.prediction = nil
+    }
+
+    // Convenience initializer used directly by the engine
+    init(
+        message: String,
+        type: InsightType,
+        priority: Int = 0,
+        confidence: Double = 1.0,
+        isAnomaly: Bool = false,
+        prediction: PredictionData? = nil
+    ) {
+        self.message = message
+        self.type = type
+        self.priority = priority
+        self.confidence = confidence
+        self.isAnomaly = isAnomaly
+        self.prediction = prediction
+    }
 }
 
 
@@ -153,32 +181,45 @@ class InsightEngine {
         return messages.randomElement() ?? messages.first ?? ""
     }
 
-        func generateInsights(checkIns: [CheckInData], breathingLogs: [BreathingData] = [], journalEntries: [WorkplaceJournalEntry] = [], goals: [UserGoalData] = [], forLastDays days: Int = 7, referenceDate: Date = Date()) -> [AppInsight] {
+        func analyze(checkIns: [WorkplaceCheckInData], breathingSessions: [BreathingData], journalEntries: [WorkplaceJournalEntryData], goals: [PersonalizationGoalData]) -> [AppInsight] {
                 var generatedInsights: [AppInsight] = []
 
         // MARK: - Phase 2: Update Adaptive Thresholds
-        updateAdaptiveThresholds(checkIns: checkIns, breathingLogs: breathingLogs)
+        updateAdaptiveThresholds(checkIns: checkIns, breathingLogs: breathingSessions)
         
         let calendar = Calendar.current
+        // Define analysis window
+        let days: Int = 7
+        let referenceDate: Date = Date()
+        
         // Current period (e.g., last 7 days)
-        guard let currentPeriodEndDate = calendar.startOfDay(for: referenceDate) as Date?,
-              let currentPeriodStartDate = calendar.date(byAdding: .day, value: -days, to: currentPeriodEndDate) else {
+        let currentPeriodEndDate = calendar.startOfDay(for: referenceDate)
+        guard let currentPeriodStartDate = calendar.date(byAdding: .day, value: -days, to: currentPeriodEndDate) else {
             return generatedInsights
         }
 
         // Filter check-ins to current period
-        let currentPeriodCheckIns = checkIns.filter { checkIn in
-            return checkIn.timestamp >= currentPeriodStartDate && checkIn.timestamp <= currentPeriodEndDate
+        var currentPeriodCheckIns: [WorkplaceCheckInData] = []
+        for checkIn in checkIns {
+            if checkIn.timestamp >= currentPeriodStartDate && checkIn.timestamp <= currentPeriodEndDate {
+                currentPeriodCheckIns.append(checkIn)
+            }
         }
 
         // Filter breathing logs to current period
-        let currentPeriodBreathingLogs = breathingLogs.filter { log in
-            return log.timestamp >= currentPeriodStartDate && log.timestamp <= currentPeriodEndDate
+        var currentPeriodBreathingLogs: [BreathingData] = []
+        for log in breathingSessions {
+            if log.completedAt >= currentPeriodStartDate && log.completedAt <= currentPeriodEndDate {
+                currentPeriodBreathingLogs.append(log)
+            }
         }
 
         // Filter journal entries to current period
-        let currentPeriodJournalEntries = journalEntries.compactMap { entry -> WorkplaceJournalEntry? in
-            return entry.date >= currentPeriodStartDate && entry.date < referenceDate ? entry : nil
+        var currentPeriodJournalEntries: [WorkplaceJournalEntryData] = []
+        for entry in journalEntries {
+            if entry.timestamp >= currentPeriodStartDate && entry.timestamp < referenceDate {
+                currentPeriodJournalEntries.append(entry)
+            }
         }
 
         // MARK: - Phase 2: Enhanced Analytics with Confidence and Anomaly Detection
@@ -189,7 +230,8 @@ class InsightEngine {
         if !workHours.isEmpty {
             // Detect anomalies in work hours
             let anomalies = detectAnomalies(values: workHours)
-            let variance = workHours.map { pow($0 - workHours.reduce(0, +) / Double(workHours.count), 2) }.reduce(0, +) / Double(workHours.count - 1)
+            let meanWorkHours = workHours.reduce(0, +) / Double(workHours.count)
+            let variance = workHours.count > 1 ? workHours.map { pow($0 - meanWorkHours, 2) }.reduce(0, +) / Double(workHours.count - 1) : 0.0
             let confidence = calculateConfidence(sampleSize: workHours.count, variance: variance)
             
             // Generate predictive insights
@@ -226,7 +268,8 @@ class InsightEngine {
         if !stressRatings.isEmpty {
             let adaptiveStressThreshold = adaptiveThresholds["highStress"]?.currentValue ?? 4.0
             let highStressCount = stressRatings.filter { $0 >= adaptiveStressThreshold }.count
-            let variance = stressRatings.map { pow($0 - stressRatings.reduce(0, +) / Double(stressRatings.count), 2) }.reduce(0, +) / Double(stressRatings.count - 1)
+            let meanStress = stressRatings.reduce(0, +) / Double(stressRatings.count)
+            let variance = stressRatings.count > 1 ? stressRatings.map { pow($0 - meanStress, 2) }.reduce(0, +) / Double(stressRatings.count - 1) : 0.0
             let confidence = calculateConfidence(sampleSize: stressRatings.count, variance: variance)
             
             if highStressCount > stressRatings.count / 2 {
@@ -243,10 +286,11 @@ class InsightEngine {
         if !focusRatings.isEmpty {
             let adaptiveFocusThreshold = adaptiveThresholds["lowFocus"]?.currentValue ?? 2.0
             _ = focusRatings.filter { $0 <= adaptiveFocusThreshold }.count
-            let variance = focusRatings.map { pow($0 - focusRatings.reduce(0, +) / Double(focusRatings.count), 2) }.reduce(0, +) / Double(focusRatings.count - 1)
+            let meanFocus = focusRatings.reduce(0, +) / Double(focusRatings.count)
+            let variance = focusRatings.count > 1 ? focusRatings.map { pow($0 - meanFocus, 2) }.reduce(0, +) / Double(focusRatings.count - 1) : 0.0
             let confidence = calculateConfidence(sampleSize: focusRatings.count, variance: variance)
             
-            if let prediction = predictTrend(values: focusRatings) {
+            if let prediction = predictTrend(values: focusRatings.map { Double($0) }) {
                 var insight = AppInsight(
                     message: "🎯 Focus Forecast: Your focus trend is \(prediction.trendDirection == .increasing ? "improving" : prediction.trendDirection == .decreasing ? "declining" : "stable"). Predicted focus level for \(prediction.forecastPeriod): \(String(format: "%.1f", prediction.predictedValue))/5.",
                     type: .prediction,
@@ -274,15 +318,20 @@ class InsightEngine {
         }
 
         // Filter data for the relevant periods
-        _ = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
-        let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
+        // (Removed unused previous period breathing logs filtering to reduce compile-time complexity)
+        var historicalCheckInsForAverage: [WorkplaceCheckInData] = []
+        for item in checkIns {
+            if item.timestamp >= historicalAverageStartDate && item.timestamp < historicalAverageEndDate {
+                historicalCheckInsForAverage.append(item)
+            }
+        }
 
-        // Analyze sentiment for both journal entries and session notes
+        // Analyze sentiment for journal entries
         var sentimentInsights: [AppInsight] = []
         
         // Journal entries sentiment analysis
         for entry in currentPeriodJournalEntries {
-            let sentiment = sentimentAnalysis(for: entry.text)
+            let sentiment = sentimentAnalysis(for: entry.content)
             if sentiment > 0.3 {
                 sentimentInsights.append(AppInsight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
             } else if sentiment < -0.3 {
@@ -290,26 +339,7 @@ class InsightEngine {
             }
         }
         
-        // Session notes sentiment analysis
-        let checkInsWithNotes = currentPeriodCheckIns.filter { $0.sessionNote != nil && !$0.sessionNote!.isEmpty }
-        var positiveSessions = 0
-        var negativeSessions = 0
-        
-        for checkIn in checkInsWithNotes {
-            let sentiment = sentimentAnalysis(for: checkIn.sessionNote!)
-            if sentiment > 0.3 {
-                positiveSessions += 1
-            } else if sentiment < -0.3 {
-                negativeSessions += 1
-            }
-        }
-        
-        // Generate insights based on session note sentiment patterns
-        if positiveSessions > negativeSessions && positiveSessions >= 2 {
-            sentimentInsights.append(AppInsight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
-        } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
-            sentimentInsights.append(AppInsight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
-        }
+        // (Session notes sentiment analysis removed; current data model does not include session notes on check-ins.)
 
         generatedInsights.append(contentsOf: sentimentInsights)
 
@@ -372,7 +402,7 @@ class InsightEngine {
 
     // MARK: - Phase 2 Helper Method Placeholders
 
-    private func updateAdaptiveThresholds(checkIns: [CheckInData], breathingLogs: [BreathingData]) {
+    private func updateAdaptiveThresholds(checkIns: [WorkplaceCheckInData], breathingLogs: [BreathingData]) {
         // Placeholder: Logic to update adaptive thresholds based on new data
         print("DEBUG: updateAdaptiveThresholds called")
     }
@@ -386,10 +416,10 @@ class InsightEngine {
 
 
     // Placeholder for generateRemainingInsightRules - ensure its signature matches the call site
-    private func generateRemainingInsightRules(checkIns: [CheckInData], 
+    private func generateRemainingInsightRules(checkIns: [WorkplaceCheckInData], 
                                              breathingLogs: [BreathingData], 
-                                             journalEntries: [WorkplaceJournalEntry], 
-                                             goals: [UserGoalData], 
+                                             journalEntries: [WorkplaceJournalEntryData], 
+                                             goals: [PersonalizationGoalData], 
                                              days: Int, 
                                              referenceDate: Date, 
                                              calendar: Calendar, 
@@ -462,16 +492,24 @@ class InsightEngine {
     }
 
     // Filter data for the relevant periods
-    // breathingLogs, checkIns are parameters
-    _ = breathingLogs.filter { $0.timestamp >= previousPeriodStartDate && $0.timestamp < previousPeriodEndDate }
-    let historicalCheckInsForAverage = checkIns.filter { $0.timestamp >= historicalAverageStartDate && $0.timestamp < historicalAverageEndDate }
+    // Count previous-period breathing logs (if needed later)
+    var _previousPeriodBreathingCount = 0
+    for b in breathingLogs {
+        if b.completedAt >= previousPeriodStartDate && b.completedAt < previousPeriodEndDate { _previousPeriodBreathingCount += 1 }
+    }
+    var historicalCheckInsForAverage: [WorkplaceCheckInData] = []
+    for item in checkIns {
+        if item.timestamp >= historicalAverageStartDate && item.timestamp < historicalAverageEndDate {
+            historicalCheckInsForAverage.append(item)
+        }
+    }
 
     // Analyze sentiment for both journal entries and session notes
     var sentimentInsightsContainer: [AppInsight] = [] // Using a different name to avoid confusion if 'insights' is used differently here
     
     // journalEntries is a parameter
     for entry in journalEntries { // Use the passed-in journalEntries
-        let sentiment = self.sentimentAnalysis(for: entry.text) // 'self' for clarity
+        let sentiment = self.sentimentAnalysis(for: entry.content) // 'self' for clarity
         if sentiment > 0.3 {
             sentimentInsightsContainer.append(AppInsight(message: "Your journal entry '\(entry.title)' has a positive tone. What's been going well?", type: .question, priority: 3))
         } else if sentiment < -0.3 {
@@ -479,28 +517,7 @@ class InsightEngine {
         }
     }
     
-    // Session notes sentiment analysis
-    // currentPeriodCheckIns is a parameter to generateInsights, not generateRemainingInsightRules directly.
-    // This implies generateRemainingInsightRules needs currentPeriodCheckIns or the filtered checkIns.
-    // The signature of generateRemainingInsightRules has `checkIns: [CheckInData]`, which should be the current period check-ins.
-    let checkInsWithNotes = checkIns.filter { $0.sessionNote != nil && !$0.sessionNote!.isEmpty }
-    var positiveSessions = 0
-    var negativeSessions = 0
-    
-    for checkIn in checkInsWithNotes {
-        let sentiment = self.sentimentAnalysis(for: checkIn.sessionNote!) // 'self' for clarity
-        if sentiment > 0.3 {
-            positiveSessions += 1
-        } else if sentiment < -0.3 {
-            negativeSessions += 1
-        }
-    }
-    
-    if positiveSessions > negativeSessions && positiveSessions >= 2 {
-        sentimentInsightsContainer.append(AppInsight(message: "Your session reflections show a positive pattern this week. Keep up the good work!", type: .affirmation, priority: 2))
-    } else if negativeSessions > positiveSessions && negativeSessions >= 2 {
-        sentimentInsightsContainer.append(AppInsight(message: "Your session reflections suggest some challenges this week. Consider what support might help.", type: .question, priority: 2))
-    }
+    // Session note analysis removed (no sessionNote field on WorkplaceCheckInData in this app model)
 
     insights.append(contentsOf: sentimentInsightsContainer) // Add collected sentiment insights to the main 'insights' array
 

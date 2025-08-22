@@ -88,50 +88,21 @@ class AchievementManager: ObservableObject {
     }
 
     private func setupUserStatsSubscription() {
-        // Example: Reacting to changes in UserStatsManager's published properties
-        // This requires UserStatsManager to publish its UserStats entity or relevant properties
-        // userStatsManager.objectWillChange // This is too broad and frequent
+        let publishers = [
+            userStatsManager.$currentWorkSessionStreak.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            userStatsManager.$currentBreathingStreak.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            userStatsManager.$currentDailyReflectionStreak.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            userStatsManager.$totalWorkSessionsCompleted.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            userStatsManager.$totalBreathingExercisesLogged.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            userStatsManager.$totalReflectionsAdded.dropFirst().map { _ in () }.eraseToAnyPublisher()
+        ]
 
-        // Instead, subscribe to specific relevant @Published properties from UserStatsManager
-        // The .sink { ... } call above was not attached to any publisher, causing an error. It's removed.
-
-        // Listen to individual properties for changes.
-        let statsUpdatePublisher = { [weak self] in
-            // Debounce to avoid rapid checks if multiple stats change close together.
-            // This uses a common pattern for manual debouncing if not directly applying to publisher chain.
-            // For simplicity here, we'll call checkAchievements directly, but consider a more robust debounce if needed.
-            print("AchievementManager: Detected change in UserStatsManager, checking achievements.")
-            self?.checkAchievementsForUnlocks()
-        }
-
-        userStatsManager.$currentWorkSessionStreak
-            .dropFirst() // Ignore initial value
-            .sink { _ in statsUpdatePublisher() }
-            .store(in: &cancellables)
-
-        userStatsManager.$currentBreathingStreak
-            .dropFirst()
-            .sink { _ in statsUpdatePublisher() }
-            .store(in: &cancellables)
-
-        userStatsManager.$currentDailyReflectionStreak
-            .dropFirst()
-            .sink { _ in statsUpdatePublisher() }
-            .store(in: &cancellables)
-
-        userStatsManager.$totalWorkSessionsCompleted
-            .dropFirst()
-            .sink { _ in statsUpdatePublisher() }
-            .store(in: &cancellables)
-
-        userStatsManager.$totalBreathingExercisesLogged
-            .dropFirst()
-            .sink { _ in statsUpdatePublisher() }
-            .store(in: &cancellables)
-
-        userStatsManager.$totalReflectionsAdded
-            .dropFirst()
-            .sink { _ in statsUpdatePublisher() }
+        Publishers.MergeMany(publishers)
+            .debounce(for: .seconds(1.0), scheduler: RunLoop.main)
+            .sink { [weak self] in
+                print("AchievementManager: Detected change in UserStatsManager, checking achievements.")
+                self?.checkAchievementsForUnlocks()
+            }
             .store(in: &cancellables)
     }
 

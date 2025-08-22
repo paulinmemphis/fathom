@@ -22,6 +22,36 @@ enum PersonalizationError: Error, LocalizedError, Sendable {
 @MainActor
 final class PersonalizationEngine: ObservableObject {
     static let shared = PersonalizationEngine()
+
+    // MARK: - Data Conversion Methods
+
+    /// Convert Core Data BreathingExercise array to BreathingData array
+    func convertBreathingExercises(_ coreDataExercises: [Fathom.BreathingExercise]) -> [BreathingData] {
+        return coreDataExercises.map { BreathingData(from: $0) }
+    }
+
+    /// Convert Core Data WorkplaceCheckIn array to CheckInData array
+    func convertWorkplaceCheckIns(_ coreDataCheckIns: [Fathom.WorkplaceCheckIn]) -> [WorkplaceCheckInData] {
+        return coreDataCheckIns.map { WorkplaceCheckInData(from: $0) }
+    }
+
+    /// Convert Core Data WorkplaceJournalEntry array to the Sendable WorkplaceJournalEntry struct array
+    func convertJournalEntries(_ coreDataEntries: [Fathom.JournalEntry]) -> [WorkplaceJournalEntryData] {
+        return coreDataEntries.map { WorkplaceJournalEntryData(from: $0) }
+    }
+
+    /// Convert UserGoalData array to PersonalizationGoalData array
+    func convertGoals(_ goals: [UserGoalData]) -> [PersonalizationGoalData] {
+        return goals.map { goal in
+            PersonalizationGoalData(
+                id: goal.id,
+                title: goal.title,
+                targetDate: goal.targetDate ?? Date(),
+                isCompleted: goal.isCompleted,
+                progress: goal.progress
+            )
+        }
+    }
     
     // MARK: - Published Properties
     @Published private(set) var userRole: WorkRole = .other
@@ -45,6 +75,7 @@ final class PersonalizationEngine: ObservableObject {
         static let userRole = "PersonalizationEngine.userRole"
         static let userIndustry = "PersonalizationEngine.userIndustry"
         static let insightComplexity = "PersonalizationEngine.insightComplexity"
+        static let hasSetInsightComplexityManually = "PersonalizationEngine.hasSetInsightComplexityManually"
         static let contextualTriggers = "PersonalizationEngine.contextualTriggers"
     }
     
@@ -135,6 +166,7 @@ final class PersonalizationEngine: ObservableObject {
         
         insightComplexity = complexity
         userDefaults.set(complexity.rawValue, forKey: Keys.insightComplexity)
+        userDefaults.set(true, forKey: Keys.hasSetInsightComplexityManually)
         
         logger.info("Insight complexity updated to: \(complexity.rawValue)")
     }
@@ -397,6 +429,9 @@ final class PersonalizationEngine: ObservableObject {
     // MARK: - Progressive Insights
 
     @MainActor private func updateComplexityBasedOnUsage() {
+        // Do not override if the user has set this manually
+        guard !userDefaults.bool(forKey: Keys.hasSetInsightComplexityManually) else { return }
+        
         let totalEngagement = userPreferences.values.reduce(0) { $0 + $1.engagementScore }
         let averageEngagement = userPreferences.isEmpty ? 0 : totalEngagement / Double(userPreferences.count)
         let totalInteractions = userPreferences.values.reduce(0) { $0 + $1.viewCount + $1.actionCount }
@@ -591,8 +626,8 @@ final class PersonalizationEngine: ObservableObject {
     func generatePersonalizedInsights(
         checkIns: [WorkplaceCheckInData],
         breathingLogs: [BreathingData] = [],
-        journalEntries: [WorkplaceJournalEntry] = [],
-        goals: [UserGoalData] = [],
+        journalEntries: [WorkplaceJournalEntryData] = [],
+        goals: [PersonalizationGoalData] = [],
         forLastDays days: Int = 7,
         referenceDate: Date = Date()
     ) async -> [InsightData] {
@@ -603,10 +638,10 @@ final class PersonalizationEngine: ObservableObject {
         
         // Example insights based on check-ins
         if !checkIns.isEmpty {
-            let stressLevels = checkIns.compactMap(\.stressLevel)
+            let stressLevels = checkIns.map(\.stressLevel)
             let avgStress = stressLevels.isEmpty ? 0.0 : stressLevels.reduce(0, +) / Double(stressLevels.count)
-            
-            let focusLevels = checkIns.compactMap(\.focusLevel)
+
+            let focusLevels = checkIns.map(\.focusLevel)
             let avgFocus = focusLevels.isEmpty ? 0.0 : focusLevels.reduce(0, +) / Double(focusLevels.count)
             
             if avgStress > 0.7 {

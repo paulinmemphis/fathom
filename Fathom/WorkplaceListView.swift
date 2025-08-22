@@ -96,6 +96,8 @@ struct WorkplaceListView: View {
             Spacer()
         }
         .padding()
+        .frame(maxWidth: 500)
+        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Helper for Sheet Context

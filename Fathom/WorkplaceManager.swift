@@ -415,7 +415,7 @@ class WorkplaceManager: ObservableObject {
         var shortestDistance = CLLocationDistance.greatestFiniteMagnitude
         
         for workplace in workplaces {
-            let workplaceLocation = CLLocation(latitude: workplace.latitude, longitude: workplace.longitude)
+            let workplaceLocation = CLLocation(latitude: workplace.coordinate.latitude, longitude: workplace.coordinate.longitude)
             let distance = location.distance(from: workplaceLocation)
             
             if distance < shortestDistance && distance <= maxDistance {

@@ -26,7 +26,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     }
 }
 
-struct MainTabView_Workplace: View {
+struct MainTabView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @State private var selectedTab: AppTab? = .dashboard
 
@@ -79,10 +79,10 @@ struct MainTabView_Workplace: View {
     
     // Helper function to return view for a given tab
     @ViewBuilder
-    private func content(for tab: AppTab) -> some View {
+    func content(for tab: AppTab) -> some View {
         switch tab {
         case .journal:
-            JournalEntriesView_Workplace()
+            JournalEntriesView()
         case .dashboard:
             InsightsView()
         case .tools:

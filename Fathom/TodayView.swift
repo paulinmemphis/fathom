@@ -336,6 +336,7 @@ struct TodayView: View {
                     subtitle: "2 min session",
                     icon: "wind",
                     color: .blue,
+                    badge: nil,
                     action: { showingBreathingExercise = true }
                 )
                 
@@ -345,6 +346,7 @@ struct TodayView: View {
                     subtitle: "View progress",
                     icon: "brain.head.profile",
                     color: .purple,
+                    badge: nil,
                     action: { showingInsights = true }
                 )
 
@@ -354,6 +356,7 @@ struct TodayView: View {
                     subtitle: "Plan first steps",
                     icon: "checklist",
                     color: .teal,
+                    badge: weeklyTaskBreakerBadge(),
                     action: {
                         showingTaskBreaker = true
                         AnalyticsService.shared.logEvent("tb_open_from_today", parameters: ["source": "today_quick_action"])
@@ -367,6 +370,7 @@ struct TodayView: View {
                         subtitle: "Session notes",
                         icon: "doc.text.fill",
                         color: .green,
+                        badge: nil,
                         action: { showingReflection = true }
                     )
                 }
@@ -377,6 +381,7 @@ struct TodayView: View {
                     subtitle: "New workplace",
                     icon: "plus.circle.fill",
                     color: .orange,
+                    badge: nil,
                     action: { showingWorkplaceEntry = true }
                 )
             }
@@ -608,6 +613,13 @@ struct TodayView: View {
         let perDay = max(1, Int(ceil(Double(remaining) / Double(daysLeft))))
         return "You're \(remaining) away from your weekly goal of \(target). With \(daysLeft) day\(daysLeft == 1 ? "" : "s") left, aim for \(perDay) session\(perDay == 1 ? "" : "s") per day."
     }
+
+    private func weeklyTaskBreakerBadge() -> String? {
+        let (start, end) = weekDateRange(for: Date())
+        let sessions = countWorkSessions(from: start, to: end)
+        let remaining = max(0, weeklyTargetSessions - sessions)
+        return remaining > 0 ? "\(remaining) left" : nil
+    }
     
     private func calculateTodayStats() -> DayStats {
         let calendar = Calendar.current
@@ -652,26 +664,41 @@ struct QuickActionCard: View {
     let subtitle: String
     let icon: String
     let color: Color
+    let badge: String?
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-                
-                VStack(spacing: 2) {
-                    Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundColor(color)
                     
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                    VStack(spacing: 2) {
+                        Text(title)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                            .multilineTextAlignment(.center)
+                        
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                
+                if let badge = badge, !badge.isEmpty {
+                    Text(badge)
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                        .padding(6)
+                        .accessibilityLabel("Badge: \(badge)")
                 }
             }
             .frame(maxWidth: .infinity)

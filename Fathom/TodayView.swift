@@ -13,6 +13,7 @@ struct TodayView: View {
     @State private var showingWorkplaceEntry = false
     @State private var showingInsights = false
     @State private var showingReflection = false
+    @State private var showingTaskBreaker = false
     
     // Current date components
     private var currentDate: Date { Date() }
@@ -80,6 +81,10 @@ struct TodayView: View {
         .sheet(isPresented: $showingReflection) {
              JournalEntryComposeView(entryToEdit: nil)
                  .environment(\.managedObjectContext, viewContext)
+        }
+        .sheet(isPresented: $showingTaskBreaker) {
+            TaskBreakerView()
+                .environment(\.managedObjectContext, viewContext)
         }
         .onAppear {
             Task {
@@ -341,6 +346,18 @@ struct TodayView: View {
                     icon: "brain.head.profile",
                     color: .purple,
                     action: { showingInsights = true }
+                )
+
+                // Task Breaker
+                QuickActionCard(
+                    title: "Task Breaker",
+                    subtitle: "Plan first steps",
+                    icon: "checklist",
+                    color: .teal,
+                    action: {
+                        showingTaskBreaker = true
+                        AnalyticsService.shared.logEvent("tb_open_from_today", parameters: ["source": "today_quick_action"])
+                    }
                 )
                 
                 // Reflection (if checked in)

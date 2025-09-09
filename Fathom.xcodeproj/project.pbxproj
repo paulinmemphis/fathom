@@ -11,8 +11,8 @@
 		DAA6B2062DF8171C00A67351 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA6B2052DF8171C00A67351 /* SwiftUI.framework */; };
 		DAA6B2172DF8171E00A67351 /* FathomWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DAA6B2012DF8171C00A67351 /* FathomWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DAB9DADF2DFA8DB50052C33A /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DADE2DFA8DB50052C33A /* FirebaseAnalytics */; settings = {ATTRIBUTES = (Weak, ); }; };
-		DAB9DAF12DFA8DB50052C33A /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DAF02DFA8DB50052C33A /* FirebaseCore */; settings = {ATTRIBUTES = (Weak, ); }; };
-		DAB9DB052DFA8DB50052C33A /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = DAB9DB042DFA8DB50052C33A /* FirebaseMLModelDownloader */; settings = {ATTRIBUTES = (Weak, ); }; };
+		DAD0F1012E00000100AAA001 /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = DAD0F1002E00000100AAA001 /* FirebaseVertexAI */; settings = {ATTRIBUTES = (Weak, ); }; };
+		DAD0F2012E00010100AAA001 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = DAD0F2002E00010100AAA001 /* FirebaseRemoteConfig */; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +112,8 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				DAB9DADF2DFA8DB50052C33A /* FirebaseAnalytics in Frameworks */,
+				DAD0F1012E00000100AAA001 /* FirebaseVertexAI in Frameworks */,
+				DAD0F2012E00010100AAA001 /* FirebaseRemoteConfig in Frameworks */,
 			);
 		};
 		DAA6B1C02DF813E800A67351 /* Frameworks */ = {
@@ -190,6 +192,8 @@
 			name = Fathom;
 			packageProductDependencies = (
 				DAB9DADE2DFA8DB50052C33A /* FirebaseAnalytics */,
+				DAD0F1002E00000100AAA001 /* FirebaseVertexAI */,
+				DAD0F2002E00010100AAA001 /* FirebaseRemoteConfig */,
 			);
 			productName = Fathom;
 			productReference = DAA6B1AF2DF813E500A67351 /* Fathom.app */;
@@ -402,7 +406,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.fathom;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -683,7 +687,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom.FathomWidgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.fathom.FathomWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -712,7 +716,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.Fathom.FathomWidgets;
+				PRODUCT_BUNDLE_IDENTIFIER = com.geekedoutinnovations.fathom.FathomWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -774,7 +778,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 10.24.0;
+				minimumVersion = 11.0.0;
 			};
 		};
 		DAB9DB122DFA8E130052C33A /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
@@ -793,15 +797,15 @@
 			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAnalytics;
 		};
-		DAB9DAF02DFA8DB50052C33A /* FirebaseCore */ = {
+		DAD0F1002E00000100AAA001 /* FirebaseVertexAI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
+			productName = FirebaseVertexAI;
 		};
-		DAB9DB042DFA8DB50052C33A /* FirebaseMLModelDownloader */ = {
+		DAD0F2002E00010100AAA001 /* FirebaseRemoteConfig */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DAB9DADB2DFA8DB50052C33A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMLModelDownloader;
+			productName = FirebaseRemoteConfig;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

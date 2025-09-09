@@ -68,6 +68,7 @@ final class PersonalizationEngine: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let notificationCenter: UNUserNotificationCenter
     private let logger = Logger(subsystem: "PersonalizationEngine", category: "main")
+    private let aiService: AIService = AIServiceFactory.make()
     
     // MARK: - Constants
     private enum Keys {
@@ -293,6 +294,32 @@ final class PersonalizationEngine: ObservableObject {
         }
         
         return adaptedInsight
+    }
+
+    // Async adaptation that leverages AI to rewrite phrasing/tone when available
+    @MainActor func adaptInsightForProfileAsync(_ insight: InsightData) async -> InsightData {
+        // Start from the deterministic adaptation
+        var adapted = adaptInsightForProfile(insight)
+        // Determine a simple style hint based on role
+        let styleHint: String?
+        switch userRole {
+        case .manager, .executive:
+            styleHint = "productivity"
+        case .designer:
+            styleHint = "mindfulness"
+        case .developer:
+            styleHint = "productivity"
+        default:
+            styleHint = nil
+        }
+        do {
+            let rewritten = try await aiService.rewriteInsight(message: adapted.message, styleHint: styleHint)
+            adapted.message = rewritten
+            return adapted
+        } catch {
+            logger.error("AI rewrite failed: \(error.localizedDescription)")
+            return adapted
+        }
     }
 
     // MARK: - Contextual Triggers
@@ -663,9 +690,15 @@ final class PersonalizationEngine: ObservableObject {
         
         // Filter and adapt insights
         insights = filterInsightsByComplexity(insights)
-        
-        // Ensure insights adaptation happens on the main thread before returning
-        insights = insights.map { self.adaptInsightForProfile($0) }
+
+        // Rewrite messages with AI when available (sequential to preserve order)
+        var adapted: [InsightData] = []
+        adapted.reserveCapacity(insights.count)
+        for item in insights {
+            let rewritten = await self.adaptInsightForProfileAsync(item)
+            adapted.append(rewritten)
+        }
+        insights = adapted
         
         // Sort by priority and engagement
         insights.sort { lhs, rhs in
@@ -680,6 +713,16 @@ final class PersonalizationEngine: ObservableObject {
         
         logger.info("Generated \(insights.count) personalized insights")
         return insights
+    }
+
+    // MARK: - Journal Summarization (optional helper)
+    @MainActor func summarizeJournal(_ text: String, maxCharacters: Int = 280) async -> String {
+        do {
+            return try await aiService.summarizeJournal(text: text, maxCharacters: maxCharacters)
+        } catch {
+            logger.error("Journal summarize failed: \(error.localizedDescription)")
+            return text.count > maxCharacters ? String(text.prefix(maxCharacters)) + "…" : text
+        }
     }
     
     // MARK: - Cleanup

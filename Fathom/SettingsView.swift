@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var alertTitle = ""
     @State private var isOnboardingPresented = false
     @State private var enableAnalytics = false
+    @StateObject private var aiGate = AIFeatureGate.shared
     
     var body: some View {
         NavigationStack {
@@ -60,6 +61,40 @@ struct SettingsView: View {
                     }
                 }
                 
+                // MARK: - AI Features Section
+                Section("AI Features") {
+                    Toggle(isOn: $aiGate.userOptIn) {
+                        Label("Enable AI Features", systemImage: "brain.head.profile")
+                    }
+                    .accessibilityLabel("Enable AI Features")
+                    
+                    Button {
+                        aiGate.refreshRemoteConfig()
+                    } label: {
+                        Label("Refresh AI Settings", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(!aiGate.userOptIn)
+                    
+                    HStack {
+                        Text("Cloud AI")
+                        Spacer()
+                        Text(aiGate.allowsCloudAI ? "On" : "Off")
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Text("Summarization")
+                        Spacer()
+                        Text(aiGate.allowsCloudSummarization ? "On" : "Off")
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Text("Rewrites")
+                        Spacer()
+                        Text(aiGate.allowsCloudRewrite ? "On" : "Off")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
                 // MARK: - Support Section
                 Section("Support") {
                     Link(destination: URL(string: "mailto:support@fathomapp.com")!) {
@@ -96,6 +131,16 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.automatic) // Added for iPadOS consistency
+            .onAppear {
+                // Refresh RC on entry to Settings
+                aiGate.refreshRemoteConfig()
+            }
+            .onChange(of: aiGate.userOptIn) { newValue in
+                AnalyticsService.shared.logEvent("ai_opt_in_changed", parameters: [
+                    "opt_in": newValue
+                ])
+                AnalyticsService.shared.setUserProperty(newValue ? "true" : "false", forName: "ai_opt_in")
+            }
             .sheet(isPresented: $showingSubscriptionSheet) {
                 PaywallView_Workplace()
                     .environmentObject(subscriptionManager)

@@ -19,6 +19,7 @@ struct JournalEntryComposeView: View {
     @State private var content: String
     @State private var stressLevel: Double
     @State private var isSaving: Bool = false
+    @State private var isSummarizing: Bool = false
     
     // Custom initializer to set up state based on whether we're editing or creating
     init(entryToEdit: JournalEntry? = nil) {
@@ -36,6 +37,28 @@ struct JournalEntryComposeView: View {
             _title = State(initialValue: "")
             _content = State(initialValue: "")
             _stressLevel = State(initialValue: 0.5)
+        }
+    }
+
+    private func summarizeContent() {
+        let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        isSummarizing = true
+        Task { @MainActor in
+            let old = content
+            let summarized = await PersonalizationEngine.shared.summarizeJournal(text, maxCharacters: 400)
+            var result = summarized.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Ensure a visible change even if the fallback summary equals the original
+            if result.isEmpty || result == old {
+                if old.count > 200 {
+                    result = String(old.prefix(200)) + "…"
+                } else {
+                    // For very short entries, prepend a label to show effect
+                    result = "Summary: " + old
+                }
+            }
+            content = result
+            isSummarizing = false
         }
     }
 
@@ -68,6 +91,20 @@ struct JournalEntryComposeView: View {
                     }
                 }
                 
+                Section("AI Assistance") {
+                    Button(action: summarizeContent) {
+                        Label("Summarize", systemImage: "wand.and.stars")
+                    }
+                    .disabled(isSummarizing || content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if isSummarizing {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Summarizing…")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 Section {
                     Button(action: saveEntry) {
                         HStack {
@@ -89,6 +126,17 @@ struct JournalEntryComposeView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: summarizeContent) {
+                        if isSummarizing {
+                            ProgressView()
+                        } else {
+                            Text("Summarize")
+                        }
+                    }
+                    .disabled(isSummarizing || content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityLabel("Summarize journal content")
                 }
             }
         }

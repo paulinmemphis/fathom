@@ -60,6 +60,7 @@ struct UserProgressView: View {
         .sheet(isPresented: $showingPersonalizationSettings) {
             PersonalizationSettingsView()
         }
+        .onAppear { refreshProgressData() }
     }
     
     // MARK: - Custom Tab Picker
@@ -170,34 +171,34 @@ struct UserProgressView: View {
                 
                 InsightSummaryCard(
                     title: "Peak Focus",
-                    value: "2-4 PM",
+                    value: peakFocusLabel,
                     icon: "brain.head.profile",
                     color: .blue,
-                    trend: .up
+                    trend: focusTrend
                 )
                 
                 InsightSummaryCard(
                     title: "Avg Session",
-                    value: "4.2 hrs",
+                    value: avgSessionText,
                     icon: "clock.fill",
                     color: .green,
-                    trend: .up
+                    trend: sessionTrend
                 )
                 
                 InsightSummaryCard(
                     title: "Stress Level",
-                    value: "Low",
+                    value: stressLevelLabel,
                     icon: "heart.fill",
                     color: .orange,
-                    trend: .down
+                    trend: stressTrend
                 )
                 
                 InsightSummaryCard(
                     title: "Productivity",
-                    value: "High",
+                    value: productivityLabel,
                     icon: "chart.line.uptrend.xyaxis",
                     color: .purple,
-                    trend: .up
+                    trend: productivityTrend
                 )
             }
         }
@@ -214,24 +215,24 @@ struct UserProgressView: View {
                 // Work Hours Chart
                 ProgressChartCard(
                     title: "Work Hours This Week",
-                    value: "32.5 hrs",
-                    progress: 0.65,
+                    value: workHoursThisWeekText,
+                    progress: workHoursProgress,
                     color: .blue
                 )
                 
                 // Wellness Score Chart
                 ProgressChartCard(
                     title: "Wellness Score",
-                    value: "8.2/10",
-                    progress: 0.82,
+                    value: wellnessScoreText,
+                    progress: wellnessScoreProgress,
                     color: .green
                 )
                 
                 // Focus Rating Chart
                 ProgressChartCard(
                     title: "Average Focus",
-                    value: "7.5/10",
-                    progress: 0.75,
+                    value: averageFocusText,
+                    progress: averageFocusProgress,
                     color: .purple
                 )
             }
@@ -256,30 +257,30 @@ struct UserProgressView: View {
             VStack(spacing: 12) {
                 WeeklySummaryRow(
                     title: "Total Work Time",
-                    value: "32.5 hrs",
-                    change: "+2.3 hrs",
-                    isPositive: true
+                    value: workHoursThisWeekText,
+                    change: workHoursChangeText,
+                    isPositive: workHoursChangeIsPositive
                 )
                 
                 WeeklySummaryRow(
                     title: "Breathing Sessions",
-                    value: "12",
-                    change: "+5",
-                    isPositive: true
+                    value: String(breathingSessionsThisWeek),
+                    change: breathingSessionsChangeText,
+                    isPositive: breathingSessionsChangeIsPositive
                 )
                 
                 WeeklySummaryRow(
                     title: "Average Stress",
-                    value: "3.2/10",
-                    change: "-1.1",
-                    isPositive: true
+                    value: averageStressText,
+                    change: averageStressChangeText,
+                    isPositive: averageStressChangeIsPositive
                 )
                 
                 WeeklySummaryRow(
                     title: "Focus Rating",
-                    value: "7.5/10",
-                    change: "+0.8",
-                    isPositive: true
+                    value: averageFocusText,
+                    change: averageFocusChangeText,
+                    isPositive: averageFocusChangeIsPositive
                 )
             }
         }
@@ -424,19 +425,19 @@ private var detailedInsightsSection: some View {
                 BasicStatRow(
                     icon: "clock.fill",
                     title: "Total Work Time",
-                    value: "32.5 hrs this week"
+                    value: "\(workHoursThisWeekText) this week"
                 )
                 
                 BasicStatRow(
                     icon: "location.fill",
                     title: "Check-ins",
-                    value: "15 this week"
+                    value: "\(thisWeekCheckInsCount) this week"
                 )
                 
                 BasicStatRow(
                     icon: "wind",
                     title: "Breathing Sessions",
-                    value: "3 this week"
+                    value: "\(breathingSessionsThisWeek) this week"
                 )
             }
         }
@@ -635,6 +636,200 @@ private var detailedInsightsSection: some View {
                 }
             }
         }
+    }
+    
+    // MARK: - Data & Metrics (This Week vs Last Week)
+    @State private var thisWeekCheckIns: [Fathom.WorkplaceCheckIn] = []
+    @State private var lastWeekCheckIns: [Fathom.WorkplaceCheckIn] = []
+    @State private var thisWeekBreathing: [Fathom.BreathingExercise] = []
+    @State private var lastWeekBreathing: [Fathom.BreathingExercise] = []
+
+    private func refreshProgressData() {
+        let cal = Calendar.current
+        guard let thisWeek = cal.dateInterval(of: .weekOfYear, for: Date()) else { return }
+        guard let lastWeekStart = cal.date(byAdding: .weekOfYear, value: -1, to: thisWeek.start),
+              let lastWeek = cal.dateInterval(of: .weekOfYear, for: lastWeekStart) else { return }
+
+        thisWeekCheckIns = fetchCheckIns(between: thisWeek.start, and: thisWeek.end)
+        lastWeekCheckIns = fetchCheckIns(between: lastWeek.start, and: lastWeek.end)
+        thisWeekBreathing = fetchBreathing(between: thisWeek.start, and: thisWeek.end)
+        lastWeekBreathing = fetchBreathing(between: lastWeek.start, and: lastWeek.end)
+    }
+
+    private func fetchCheckIns(between start: Date, and end: Date) -> [Fathom.WorkplaceCheckIn] {
+        let request: NSFetchRequest<Fathom.WorkplaceCheckIn> = Fathom.WorkplaceCheckIn.fetchRequest()
+        request.predicate = NSPredicate(format: "checkInTime >= %@ AND checkInTime < %@", start as NSDate, end as NSDate)
+        request.sortDescriptors = [NSSortDescriptor(key: "checkInTime", ascending: true)]
+        do { return try viewContext.fetch(request) } catch { return [] }
+    }
+
+    private func fetchBreathing(between start: Date, and end: Date) -> [Fathom.BreathingExercise] {
+        let request: NSFetchRequest<Fathom.BreathingExercise> = Fathom.BreathingExercise.fetchRequest()
+        request.predicate = NSPredicate(format: "completedAt >= %@ AND completedAt < %@", start as NSDate, end as NSDate)
+        request.sortDescriptors = [NSSortDescriptor(key: "completedAt", ascending: true)]
+        do { return try viewContext.fetch(request) } catch { return [] }
+    }
+
+    // MARK: - Aggregations
+    private var thisWeekHours: Double {
+        let minutes = thisWeekCheckIns.reduce(0) { $0 + $1.sessionDuration }
+        return Double(minutes) / 60.0
+    }
+    private var lastWeekHours: Double {
+        let minutes = lastWeekCheckIns.reduce(0) { $0 + $1.sessionDuration }
+        return Double(minutes) / 60.0
+    }
+    private var thisWeekAvgFocus0to10: Double {
+        guard !thisWeekCheckIns.isEmpty else { return 0 }
+        let avg0to1 = thisWeekCheckIns.reduce(0.0) { $0 + $1.focusLevel } / Double(thisWeekCheckIns.count)
+        return avg0to1 * 10.0
+    }
+    private var lastWeekAvgFocus0to10: Double {
+        guard !lastWeekCheckIns.isEmpty else { return 0 }
+        let avg0to1 = lastWeekCheckIns.reduce(0.0) { $0 + $1.focusLevel } / Double(lastWeekCheckIns.count)
+        return avg0to1 * 10.0
+    }
+    private var thisWeekAvgStress0to10: Double {
+        guard !thisWeekCheckIns.isEmpty else { return 0 }
+        let avg0to1 = thisWeekCheckIns.reduce(0.0) { $0 + $1.stressLevel } / Double(thisWeekCheckIns.count)
+        return avg0to1 * 10.0
+    }
+    private var lastWeekAvgStress0to10: Double {
+        guard !lastWeekCheckIns.isEmpty else { return 0 }
+        let avg0to1 = lastWeekCheckIns.reduce(0.0) { $0 + $1.stressLevel } / Double(lastWeekCheckIns.count)
+        return avg0to1 * 10.0
+    }
+
+    // MARK: - Labels/Texts
+    private var workHoursThisWeekText: String {
+        String(format: "%.1f hrs", thisWeekHours)
+    }
+    private var workHoursProgress: Double {
+        min(1.0, thisWeekHours / 40.0) // target 40h week
+    }
+    private var workHoursChangeText: String {
+        let diff = thisWeekHours - lastWeekHours
+        let sign = diff >= 0 ? "+" : ""
+        return String(format: "%@%.1f hrs", sign, diff)
+    }
+    private var workHoursChangeIsPositive: Bool { thisWeekHours >= lastWeekHours }
+
+    private var wellnessScore0to10: Double {
+        // Simple blend of low stress + high focus
+        let focus = thisWeekAvgFocus0to10
+        let stress = thisWeekAvgStress0to10
+        return max(0, min(10, 0.5 * focus + 0.5 * (10 - stress)))
+    }
+    private var wellnessScoreText: String { String(format: "%.1f/10", wellnessScore0to10) }
+    private var wellnessScoreProgress: Double { wellnessScore0to10 / 10.0 }
+
+    private var averageFocusText: String { String(format: "%.1f/10", thisWeekAvgFocus0to10) }
+    private var averageFocusProgress: Double { thisWeekAvgFocus0to10 / 10.0 }
+    private var averageFocusChangeText: String {
+        let diff = thisWeekAvgFocus0to10 - lastWeekAvgFocus0to10
+        let sign = diff >= 0 ? "+" : ""
+        return String(format: "%@%.1f", sign, diff)
+    }
+    private var averageFocusChangeIsPositive: Bool { thisWeekAvgFocus0to10 >= lastWeekAvgFocus0to10 }
+
+    private var averageStressText: String { String(format: "%.1f/10", thisWeekAvgStress0to10) }
+    private var averageStressChangeText: String {
+        let diff = thisWeekAvgStress0to10 - lastWeekAvgStress0to10
+        let sign = diff <= 0 ? "-" : "+" // negative is better
+        return String(format: "%@%.1f", sign, abs(diff))
+    }
+    private var averageStressChangeIsPositive: Bool { thisWeekAvgStress0to10 <= lastWeekAvgStress0to10 }
+
+    private var thisWeekCheckInsCount: Int { thisWeekCheckIns.count }
+    private var breathingSessionsThisWeek: Int { thisWeekBreathing.count }
+    private var breathingSessionsChangeText: String {
+        let diff = breathingSessionsThisWeek - lastWeekBreathing.count
+        let sign = diff >= 0 ? "+" : ""
+        return "\(sign)\(diff)"
+    }
+    private var breathingSessionsChangeIsPositive: Bool { breathingSessionsThisWeek >= lastWeekBreathing.count }
+
+    private var avgSessionText: String {
+        guard !thisWeekCheckIns.isEmpty else { return "0.0 hrs" }
+        let minutes = thisWeekCheckIns.reduce(0) { $0 + $1.sessionDuration }
+        let avgHours = Double(minutes) / Double(max(1, thisWeekCheckIns.count)) / 60.0
+        return String(format: "%.1f hrs", avgHours)
+    }
+    private var sessionTrend: InsightSummaryCard.TrendDirection {
+        let thisAvg = thisWeekCheckIns.isEmpty ? 0 : Double(thisWeekCheckIns.reduce(0) { $0 + $1.sessionDuration }) / Double(thisWeekCheckIns.count)
+        let lastAvg = lastWeekCheckIns.isEmpty ? 0 : Double(lastWeekCheckIns.reduce(0) { $0 + $1.sessionDuration }) / Double(lastWeekCheckIns.count)
+        let diff = thisAvg - lastAvg
+        if diff > 1 { return .up } // >1 minute increase
+        if diff < -1 { return .down }
+        return .stable
+    }
+
+    private var focusTrend: InsightSummaryCard.TrendDirection {
+        let diff = thisWeekAvgFocus0to10 - lastWeekAvgFocus0to10
+        if diff > 0.2 { return .up }
+        if diff < -0.2 { return .down }
+        return .stable
+    }
+    private var stressTrend: InsightSummaryCard.TrendDirection {
+        let diff = lastWeekAvgStress0to10 - thisWeekAvgStress0to10 // lower stress is better
+        if diff > 0.2 { return .up }
+        if diff < -0.2 { return .down }
+        return .stable
+    }
+    private var productivityTrend: InsightSummaryCard.TrendDirection {
+        let diff = thisWeekHours - lastWeekHours
+        if diff > 1.0 { return .up }
+        if diff < -1.0 { return .down }
+        return .stable
+    }
+
+    private var stressLevelLabel: String {
+        let s = thisWeekAvgStress0to10
+        if s < 3.0 { return "Low" }
+        if s < 6.0 { return "Moderate" }
+        return "High"
+    }
+    private var productivityLabel: String {
+        let h = thisWeekHours
+        if h >= 40 { return "High" }
+        if h >= 20 { return "Moderate" }
+        return "Low"
+    }
+
+    private var peakFocusLabel: String {
+        guard !thisWeekCheckIns.isEmpty else { return "N/A" }
+        let cal = Calendar.current
+        var hourToFocus: [Int: [Double]] = [:]
+        for c in thisWeekCheckIns {
+            let hour = cal.component(.hour, from: c.timestamp)
+            hourToFocus[hour, default: []].append(c.focusLevel)
+        }
+        // Compute average per hour
+        var hourAvg: [Int: Double] = [:]
+        for (h, arr) in hourToFocus { hourAvg[h] = arr.reduce(0, +) / Double(arr.count) }
+        // Find best 2-hour window
+        var bestStart: Int? = nil
+        var bestAvg: Double = -1
+        for h in 0..<24 {
+            let a = hourAvg[h] ?? 0
+            let b = hourAvg[(h+1)%24] ?? 0
+            let avg = (a + b) / 2.0
+            if avg > bestAvg { bestAvg = avg; bestStart = h }
+        }
+        guard let start = bestStart else { return "N/A" }
+        let end = (start + 2) % 24
+        return hourRangeLabel(startHour: start, endHour: end)
+    }
+
+    private func hourRangeLabel(startHour: Int, endHour: Int) -> String {
+        func label(_ hour: Int) -> String {
+            var h = hour % 24
+            let suffix = h < 12 ? "AM" : "PM"
+            if h == 0 { h = 12 }
+            else if h > 12 { h -= 12 }
+            return "\(h) \(suffix)"
+        }
+        return "\(label(startHour))–\(label(endHour))"
     }
 }
 

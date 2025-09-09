@@ -31,8 +31,12 @@ struct TaskBreakerView: View {
     @State private var showingTimer = false
     @State private var isGenerating = false
     @State private var rewritingStepId: UUID? = nil
+    @State private var isRewritingAll = false
+    @State private var isImprovingTitle = false
+    @State private var selectedStyleHint: String = "productivity"
 
     private let aiService: AIService = AIServiceFactory.make()
+    private let styleHints = ["productivity", "stress", "mindfulness", "connection"]
 
     private let suggestedChips: [String] = [
         "Define scope", "Draft outline", "Gather data", "Create slides", "List blockers", "Ask for feedback"
@@ -111,6 +115,33 @@ struct TaskBreakerView: View {
                 Text("On-device by default; cloud AI may be used if enabled in Settings.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+
+                Picker("Tone", selection: $selectedStyleHint) {
+                    ForEach(styleHints, id: \.self) { hint in
+                        Text(hint.capitalized).tag(hint)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Button {
+                    rewriteAllStepsAI()
+                } label: {
+                    HStack {
+                        if isRewritingAll { ProgressView() }
+                        Label("Rewrite All Steps", systemImage: "wand.and.stars")
+                    }
+                }
+                .disabled(isRewritingAll || steps.allSatisfy { $0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+
+                Button {
+                    improveTitleAI()
+                } label: {
+                    HStack {
+                        if isImprovingTitle { ProgressView() }
+                        Label("Improve Title", systemImage: "textformat")
+                    }
+                }
+                .disabled(isImprovingTitle || mainTask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             Section("Suggestions") {
@@ -235,11 +266,38 @@ struct TaskBreakerView: View {
         guard !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         rewritingStepId = stepId
         Task { @MainActor in
-            let rewritten = (try? await aiService.rewriteStep(original, styleHint: "productivity")) ?? original
+            let rewritten = (try? await aiService.rewriteStep(original, styleHint: selectedStyleHint)) ?? original
             if let j = steps.firstIndex(where: { $0.id == stepId }) {
                 steps[j].title = rewritten
             }
             rewritingStepId = nil
+        }
+    }
+
+    private func rewriteAllStepsAI() {
+        let indices = steps.indices.filter { !steps[$0].title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        guard !indices.isEmpty else { return }
+        isRewritingAll = true
+        AnalyticsService.shared.logEvent("tb_rewrite_all_steps", parameters: ["count": indices.count])
+        Task { @MainActor in
+            for i in indices {
+                let original = steps[i].title
+                let rewritten = (try? await aiService.rewriteStep(original, styleHint: selectedStyleHint)) ?? original
+                steps[i].title = rewritten
+            }
+            isRewritingAll = false
+        }
+    }
+
+    private func improveTitleAI() {
+        let title = mainTask.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return }
+        isImprovingTitle = true
+        AnalyticsService.shared.logEvent("tb_improve_title", parameters: ["title_chars": title.count])
+        Task { @MainActor in
+            let rewritten = (try? await aiService.rewriteStep(title, styleHint: selectedStyleHint)) ?? title
+            mainTask = rewritten
+            isImprovingTitle = false
         }
     }
 }

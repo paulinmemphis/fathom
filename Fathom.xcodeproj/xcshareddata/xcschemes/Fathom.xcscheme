@@ -28,7 +28,38 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      shouldAutocreateTestPlan = "NO">
+      <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DAA6B1C22DF813E800A67351"
+               BuildableName = "FathomTests.xctest"
+               BlueprintName = "FathomTests"
+               ReferencedContainer = "container:Fathom.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DAA6B1CC2DF813E800A67351"
+               BuildableName = "FathomUITests.xctest"
+               BlueprintName = "FathomUITests"
+               ReferencedContainer = "container:Fathom.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "DAA6B1AE2DF813E500A67351"
+            BuildableName = "Fathom.app"
+            BlueprintName = "Fathom"
+            ReferencedContainer = "container:Fathom.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

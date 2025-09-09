@@ -53,11 +53,11 @@ final class PersonalizationEngineTests: XCTestCase {
         let engine = await MainActor.run { PersonalizationEngine.shared }
         // Setup a high-stress check-in
         let checkInData = WorkplaceCheckInData(
-            workplaceName: nil,
-            sessionDuration: 0,
+            id: UUID(),
+            timestamp: Date(),
             stressLevel: 1.0,
             focusLevel: 0.2,
-            timestamp: Date()
+            sessionDuration: 0
         )
 
         // The engine should evaluate this and identify a trigger

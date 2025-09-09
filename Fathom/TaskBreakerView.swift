@@ -29,6 +29,10 @@ struct TaskBreakerView: View {
     @State private var showCompose = false
     @State private var composeEntry: JournalEntry? = nil
     @State private var showingTimer = false
+    @State private var isGenerating = false
+    @State private var rewritingStepId: UUID? = nil
+
+    private let aiService: AIService = AIServiceFactory.make()
 
     private let suggestedChips: [String] = [
         "Define scope", "Draft outline", "Gather data", "Create slides", "List blockers", "Ask for feedback"
@@ -62,6 +66,19 @@ struct TaskBreakerView: View {
                         TextField("e.g., Open the template document", text: $step.title)
                             .textInputAutocapitalization(.sentences)
                             .disableAutocorrection(false)
+
+                        Spacer(minLength: 8)
+                        Button {
+                            rewriteStepAI(stepId: step.id)
+                        } label: {
+                            if rewritingStepId == step.id {
+                                ProgressView().scaleEffect(0.7)
+                            } else {
+                                Image(systemName: "wand.and.stars")
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Rewrite step with AI")
                     }
                 }
                 .onDelete { indexSet in
@@ -79,6 +96,21 @@ struct TaskBreakerView: View {
                 } label: {
                     Label("Add Step", systemImage: "plus.circle.fill")
                 }
+            }
+
+            Section("AI Assistance") {
+                Button {
+                    generateStepsAI()
+                } label: {
+                    HStack {
+                        if isGenerating { ProgressView() }
+                        Label("Generate Steps", systemImage: "sparkles")
+                    }
+                }
+                .disabled(isGenerating || mainTask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Text("On-device by default; cloud AI may be used if enabled in Settings.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
             }
 
             Section("Suggestions") {
@@ -169,5 +201,45 @@ struct TaskBreakerView: View {
             .filter { !$0.0.isEmpty }
             .map { title, done in "- [\(done ? "x" : " ")] \(title)" }
         return items.joined(separator: "\n")
+    }
+
+    // MARK: - AI Helpers
+    private func generateStepsAI() {
+        let title = mainTask.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return }
+        isGenerating = true
+        let ctx = steps
+            .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "; ")
+        Task { @MainActor in
+            let generated = (try? await aiService.breakDownTask(title: title, context: ctx.isEmpty ? nil : ctx, maxSteps: 6)) ?? []
+            if !generated.isEmpty {
+                // Fill empty slots first, then append
+                for g in generated {
+                    if let idx = steps.firstIndex(where: { $0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+                        steps[idx].title = g
+                        steps[idx].done = false
+                    } else {
+                        steps.append(TBStep(title: g, done: false))
+                    }
+                }
+            }
+            isGenerating = false
+        }
+    }
+
+    private func rewriteStepAI(stepId: UUID) {
+        guard let idx = steps.firstIndex(where: { $0.id == stepId }) else { return }
+        let original = steps[idx].title
+        guard !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        rewritingStepId = stepId
+        Task { @MainActor in
+            let rewritten = (try? await aiService.rewriteStep(original, styleHint: "productivity")) ?? original
+            if let j = steps.firstIndex(where: { $0.id == stepId }) {
+                steps[j].title = rewritten
+            }
+            rewritingStepId = nil
+        }
     }
 }

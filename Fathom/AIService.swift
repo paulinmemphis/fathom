@@ -14,6 +14,10 @@ import NaturalLanguage
 protocol AIService: AnyObject {
     func summarizeJournal(text: String, maxCharacters: Int) async throws -> String
     func rewriteInsight(message: String, styleHint: String?) async throws -> String
+    // New: Break a task down into concise, imperative steps (maxSteps 3-10 is recommended)
+    func breakDownTask(title: String, context: String?, maxSteps: Int) async throws -> [String]
+    // New: Rewrite a single step to be concise, imperative, and actionable
+    func rewriteStep(_ step: String, styleHint: String?) async throws -> String
 }
 
 // MARK: - On-device Fallback (no network, privacy-first)
@@ -97,6 +101,40 @@ final class OnDeviceAIService: AIService {
         return prefix + rewritten
     }
 
+    func breakDownTask(title: String, context: String?, maxSteps: Int) async throws -> [String] {
+        // Simple on-device scaffold with light templating
+        let core = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !core.isEmpty else { return [] }
+        let templates = [
+            "Define scope for %@",
+            "Collect required info/assets for %@",
+            "Draft outline for %@",
+            "Complete first pass for %@",
+            "Review with a checklist",
+            "Incorporate feedback",
+            "Polish and finalize"
+        ]
+        let goal = max(1, min(maxSteps, templates.count))
+        let steps = templates.prefix(goal).map { String(format: $0, core) }
+        return steps
+    }
+
+    func rewriteStep(_ step: String, styleHint: String?) async throws -> String {
+        // Simple imperative rewrite
+        var s = step.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.replacingOccurrences(of: "I need to ", with: "")
+        s = s.replacingOccurrences(of: "I should ", with: "")
+        s = s.replacingOccurrences(of: "Consider ", with: "Try ")
+        if let first = s.first, first.isLowercase {
+            s.replaceSubrange(s.startIndex...s.startIndex, with: String(first).uppercased())
+        }
+        // Add subtle style hint prefix
+        if let hint = styleHint, !hint.isEmpty {
+            return "(\(hint.capitalized)) " + s
+        }
+        return s
+    }
+
     private static func splitIntoSentences(_ text: String) -> [String] {
         var sentences: [String] = []
         let tokenizer = NLTokenizer(unit: .sentence)
@@ -162,6 +200,59 @@ final class VertexAIService: AIService {
             return output.isEmpty ? message : output
         } catch {
             return message
+        }
+    }
+
+    func breakDownTask(title: String, context: String?, maxSteps: Int) async throws -> [String] {
+        let c = (context ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = """
+        Break down the following task into at most \(maxSteps) concise, imperative steps.
+        Prefer clear, actionable phrasing under 80 characters per step.
+        If context is provided, avoid duplicating those steps.
+
+        Task: \(title)
+        Context (optional): \(c)
+
+        Output steps as a simple list, one per line, without numbering or extra commentary.
+        """
+        do {
+            let response = try await model.generateContent(prompt)
+            let raw = response.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let lines = raw
+                .split(whereSeparator: { $0.isNewline })
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .map { line -> String in
+                    // Strip common bullets/numbering
+                    var s = line
+                    s = s.replacingOccurrences(of: "- ", with: "")
+                    s = s.replacingOccurrences(of: "• ", with: "")
+                    if let dotRange = s.range(of: ". ") { s = String(s[dotRange.upperBound...]) }
+                    return s
+                }
+            if lines.isEmpty { return try await OnDeviceAIService().breakDownTask(title: title, context: context, maxSteps: maxSteps) }
+            return Array(lines.prefix(maxSteps))
+        } catch {
+            return try await OnDeviceAIService().breakDownTask(title: title, context: context, maxSteps: maxSteps)
+        }
+    }
+
+    func rewriteStep(_ step: String, styleHint: String?) async throws -> String {
+        // Reuse rewrite prompt, tuned for brevity
+        let hint = (styleHint ?? "productivity").lowercased()
+        let prompt = """
+        Rewrite the following step in a concise, imperative tone optimized for \(hint).
+        Keep it under 80 characters. Avoid emojis and names.
+
+        Step:
+        \(step)
+        """
+        do {
+            let response = try await model.generateContent(prompt)
+            let output = response.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return output.isEmpty ? step : output
+        } catch {
+            return step
         }
     }
 }
@@ -242,6 +333,58 @@ final class GatedAIService: AIService {
             "duration_ms": durationMs,
             "message_chars": message.count,
             "output_chars": output.count,
+            "style_hint": styleHint ?? ""
+        ])
+        return output
+    }
+
+    func breakDownTask(title: String, context: String?, maxSteps: Int) async throws -> [String] {
+        let start = Date()
+        var source = "local"
+        let output: [String]
+        if gate.allowsCloudAI {
+            do {
+                output = try await remote.breakDownTask(title: title, context: context, maxSteps: maxSteps)
+                source = "cloud"
+            } catch {
+                output = try await local.breakDownTask(title: title, context: context, maxSteps: maxSteps)
+                source = "local"
+            }
+        } else {
+            output = try await local.breakDownTask(title: title, context: context, maxSteps: maxSteps)
+            source = "local"
+        }
+        let durationMs = Int(Date().timeIntervalSince(start) * 1000)
+        AnalyticsService.shared.logEvent("ai_breakdown", parameters: [
+            "source": source,
+            "duration_ms": durationMs,
+            "title_chars": title.count,
+            "steps": output.count
+        ])
+        return output
+    }
+
+    func rewriteStep(_ step: String, styleHint: String?) async throws -> String {
+        let start = Date()
+        var source = "local"
+        let output: String
+        if gate.allowsCloudAI {
+            do {
+                output = try await remote.rewriteStep(step, styleHint: styleHint)
+                source = "cloud"
+            } catch {
+                output = try await local.rewriteStep(step, styleHint: styleHint)
+                source = "local"
+            }
+        } else {
+            output = try await local.rewriteStep(step, styleHint: styleHint)
+            source = "local"
+        }
+        let durationMs = Int(Date().timeIntervalSince(start) * 1000)
+        AnalyticsService.shared.logEvent("ai_rewrite_step", parameters: [
+            "source": source,
+            "duration_ms": durationMs,
+            "step_chars": step.count,
             "style_hint": styleHint ?? ""
         ])
         return output

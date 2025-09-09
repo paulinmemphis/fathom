@@ -158,6 +158,17 @@ class AchievementManager: ObservableObject {
                             statusEntityToUpdate.dateUnlocked = Date()
                             hasChanges = true
                             print("Achievement Unlocked: \(definition.name)")
+                            // Habit-forming: notify and track
+                            NotificationManager.shared.scheduleImmediateNotification(
+                                title: "Achievement Unlocked",
+                                body: "\(definition.name): \(definition.description)"
+                            )
+                            AnalyticsService.shared.logEvent("achievement_unlocked", parameters: [
+                                "id": definition.id,
+                                "name": definition.name,
+                                "category": definition.category.rawValue,
+                                "points": definition.points
+                            ])
                             // TODO: Post notification or alert for the user
                         } else {
                             print("Error: Could not find AchievementStatus entity for ID \(definition.id) to update.")

@@ -50,6 +50,8 @@ struct FathomApp: App {
                                 locationManager: locationManager,
                                 subscriptionManager: subscriptionManager
                             )
+                            // Schedule a streak-saver nudge for today if no work session is logged yet
+                            NotificationManager.shared.scheduleStreakSaverIfNeeded(hour: 19, minute: 0)
                         }
                     }
             } else if showOnboarding {

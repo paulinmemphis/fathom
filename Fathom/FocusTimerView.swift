@@ -9,18 +9,24 @@
 import SwiftUI
 import ActivityKit
 import Combine
+import CoreData
 #if canImport(UIKit)
 import UIKit
 #endif
 
 @available(iOS 16.1, *)
 struct FocusTimerView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var timeRemaining = 1500 // 25 minutes (in seconds)
     @State private var isTimerRunning = false
     @State private var activity: Activity<FathomActivityAttributes>? = nil
     @State private var endDate: Date? = nil // Drives accurate countdown
     @State private var totalDuration = 1500 // Track full session seconds
     @State private var selectedMinutes: Int = 25
+    @StateObject private var userStatsManager = UserStatsManager.shared
+    @State private var showCelebration = false
+    @State private var isReflectionPresented = false
+    @State private var reflectionCheckIn: Fathom.WorkplaceCheckIn? = nil
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -65,6 +71,14 @@ struct FocusTimerView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
+        .sheet(isPresented: $isReflectionPresented) {
+            if let checkIn = reflectionCheckIn {
+                WorkSessionReflectionView(checkIn: checkIn)
+                    .environment(\.managedObjectContext, viewContext)
+            } else {
+                Text("Great session!")
+            }
+        }
             }
             .frame(width: ringSize, height: ringSize)
             .padding(.vertical, 4)
@@ -118,6 +132,26 @@ struct FocusTimerView: View {
                 }
             }
             .padding(.horizontal)
+
+            // Streak summary and gentle nudge
+            VStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill").foregroundColor(.orange)
+                    Text("Streak: \(userStatsManager.currentWorkSessionStreak) day\(userStatsManager.currentWorkSessionStreak == 1 ? "" : "s")")
+                        .font(.headline)
+                    Spacer()
+                    Text("Best: \(userStatsManager.longestWorkSessionStreak)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+                if !isTimerRunning && timeRemaining == totalDuration {
+                    Text(userStatsManager.currentWorkSessionStreak > 0 ? "Keep the chain going today." : "Start a 25m session to begin your streak.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                }
+            }
         }
         .onReceive(timer) { _ in
             guard isTimerRunning else { return }
@@ -130,6 +164,13 @@ struct FocusTimerView: View {
                 if remaining <= 0 {
                     endSession()
                 }
+            }
+        }
+        .overlay(alignment: .top) {
+            if showCelebration {
+                celebrationBanner
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 8)
             }
         }
     }
@@ -154,6 +195,10 @@ struct FocusTimerView: View {
             endDate = nil
             updateActivity() // reflect paused state
             haptic(.soft)
+            AnalyticsService.shared.logEvent("focus_timer_pause", parameters: [
+                "remaining_sec": timeRemaining,
+                "total_sec": totalDuration
+            ])
         } else {
             // Currently paused/stopped -> start/resume
             if endDate == nil {
@@ -162,6 +207,10 @@ struct FocusTimerView: View {
             isTimerRunning = true
             startActivity()
             haptic(.rigid)
+            AnalyticsService.shared.logEvent("focus_timer_start", parameters: [
+                "remaining_sec": timeRemaining,
+                "total_sec": totalDuration
+            ])
         }
     }
 
@@ -172,6 +221,9 @@ struct FocusTimerView: View {
         endDate = nil
         timeRemaining = totalDuration
         haptic(.light)
+        AnalyticsService.shared.logEvent("focus_timer_reset", parameters: [
+            "total_sec": totalDuration
+        ])
     }
 
     private func startActivity() {
@@ -223,6 +275,35 @@ struct FocusTimerView: View {
         endDate = nil
         timeRemaining = 0
         haptic(.heavy)
+
+        // Habit-forming hooks: log session, schedule nudge, celebrate, analytics
+        UserStatsManager.shared.logWorkSessionCompleted()
+        NotificationManager.shared.scheduleProactiveInsight(
+            title: "Keep your focus streak going",
+            body: "Great job today! Schedule another 25m session tomorrow to keep the chain alive."
+        )
+        AnalyticsService.shared.logEvent("focus_timer_complete", parameters: [
+            "planned_sec": totalDuration,
+            "completed": true
+        ])
+        celebrateCompletion()
+        // No need for today's streak saver anymore
+        NotificationManager.shared.cancelStreakSaver()
+
+        // Create a Core Data check-in record for reflection
+        let checkIn = WorkplaceCheckIn(context: viewContext)
+        checkIn.id = UUID()
+        checkIn.checkOutTime = Date()
+        // Approximate start based on selected/planned duration
+        checkIn.checkInTime = Date().addingTimeInterval(-TimeInterval(totalDuration))
+        checkIn.notes = "Focus Timer session"
+        do {
+            try viewContext.save()
+            reflectionCheckIn = checkIn
+            isReflectionPresented = true
+        } catch {
+            print("Failed to save focus session check-in: \(error)")
+        }
     }
 
     private func applyDuration(minutes: Int) {
@@ -230,6 +311,9 @@ struct FocusTimerView: View {
         timeRemaining = totalDuration
         endDate = nil
         updateActivity()
+        AnalyticsService.shared.logEvent("focus_timer_set_duration", parameters: [
+            "minutes": minutes
+        ])
     }
 
     // MARK: - Haptics
@@ -239,5 +323,37 @@ struct FocusTimerView: View {
         generator.prepare()
         generator.impactOccurred()
         #endif
+    }
+
+    // MARK: - Celebration UI
+    private var celebrationBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .foregroundColor(.yellow)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Nice work! Session complete")
+                    .font(.headline)
+                Text("Streak: \(userStatsManager.currentWorkSessionStreak) • Best: \(userStatsManager.longestWorkSessionStreak)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.15), radius: 10, y: 4)
+        .padding(.horizontal)
+    }
+
+    private func celebrateCompletion() {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            showCelebration = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                showCelebration = false
+            }
+        }
     }
 }

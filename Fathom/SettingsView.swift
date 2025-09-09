@@ -20,6 +20,9 @@ struct SettingsView: View {
     @State private var isOnboardingPresented = false
     @State private var enableAnalytics = false
     @StateObject private var aiGate = AIFeatureGate.shared
+    // Reminders
+    @State private var dailyReminderEnabled: Bool = false
+    @State private var dailyReminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     
     var body: some View {
         NavigationStack {
@@ -31,6 +34,42 @@ struct SettingsView: View {
                     } label: {
                         Label("Subscription", systemImage: "crown.fill")
                     }
+
+                // MARK: - Reminders
+                Section("Reminders") {
+                    Toggle(isOn: $dailyReminderEnabled) {
+                        Label("Daily Focus Reminder", systemImage: "bell")
+                    }
+                    .onChange(of: dailyReminderEnabled) { newValue in
+                        UserDefaults.standard.set(newValue, forKey: Self.kDailyReminderEnabled)
+                        if newValue {
+                            NotificationManager.shared.requestAuthorization()
+                            scheduleDailyReminder()
+                            AnalyticsService.shared.logEvent("reminder_daily_focus_enabled", parameters: ["enabled": true])
+                        } else {
+                            NotificationManager.shared.cancelDailyFocusReminder()
+                            AnalyticsService.shared.logEvent("reminder_daily_focus_enabled", parameters: ["enabled": false])
+                        }
+                    }
+
+                    DatePicker(
+                        "Reminder Time",
+                        selection: $dailyReminderTime,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.compact)
+                    .disabled(!dailyReminderEnabled)
+                    .onChange(of: dailyReminderTime) { _ in
+                        UserDefaults.standard.set(dailyReminderTime.timeIntervalSince1970, forKey: Self.kDailyReminderTime)
+                        if dailyReminderEnabled {
+                            scheduleDailyReminder()
+                            AnalyticsService.shared.logEvent("reminder_daily_focus_time_changed", parameters: [
+                                "hour": Calendar.current.component(.hour, from: dailyReminderTime),
+                                "minute": Calendar.current.component(.minute, from: dailyReminderTime)
+                            ])
+                        }
+                    }
+                }
                 }
                 
                 // MARK: - Personalization Section
@@ -134,6 +173,16 @@ struct SettingsView: View {
             .onAppear {
                 // Refresh RC on entry to Settings
                 aiGate.refreshRemoteConfig()
+                // Load reminder defaults
+                let enabled = UserDefaults.standard.bool(forKey: Self.kDailyReminderEnabled)
+                dailyReminderEnabled = enabled
+                if let stored = UserDefaults.standard.object(forKey: Self.kDailyReminderTime) as? TimeInterval {
+                    dailyReminderTime = Date(timeIntervalSince1970: stored)
+                }
+                if enabled {
+                    // Re-schedule on appear to ensure system has it after reinstalls or permission changes
+                    scheduleDailyReminder()
+                }
             }
             .onChange(of: aiGate.userOptIn) { newValue in
                 AnalyticsService.shared.logEvent("ai_opt_in_changed", parameters: [
@@ -263,4 +312,16 @@ struct MailComposeView: UIViewControllerRepresentable {
 #Preview {
     SettingsView()
         .environmentObject(SubscriptionManager())
+}
+
+// MARK: - Reminder Helpers and Keys
+extension SettingsView {
+    private static let kDailyReminderEnabled = "reminder.daily.focus.enabled"
+    private static let kDailyReminderTime = "reminder.daily.focus.time"
+
+    private func scheduleDailyReminder() {
+        let hour = Calendar.current.component(.hour, from: dailyReminderTime)
+        let minute = Calendar.current.component(.minute, from: dailyReminderTime)
+        NotificationManager.shared.scheduleDailyFocusReminder(hour: hour, minute: minute)
+    }
 }

@@ -7,6 +7,7 @@ struct TodayView: View {
     @StateObject private var workplaceManager = WorkplaceManager.shared
     @StateObject private var userStatsManager = UserStatsManager.shared
     private let personalizationEngine = PersonalizationEngine.shared
+    private let weeklyTargetSessions = 5
     
     @State private var showingBreathingExercise = false
     @State private var showingWorkplaceEntry = false
@@ -40,6 +41,9 @@ struct TodayView: View {
                 
                 // MARK: - Today's Summary
                 todaySummaryCard
+                
+                // MARK: - Weekly Habit Recap
+                weeklyHabitRecapCard
                 
                 // MARK: - Wellness Prompt
                 wellnessPromptCard
@@ -141,6 +145,65 @@ struct TodayView: View {
             
             // Quick check-in/out button
             checkInOutButton
+        }
+        .padding(20)
+        .background(Color(.systemGray6))
+        .cornerRadius(16)
+    }
+    
+    // MARK: - Weekly Habit Recap Card
+    private var weeklyHabitRecapCard: some View {
+        let (startOfWeek, endOfWeek) = weekDateRange(for: Date())
+        let sessions = countWorkSessions(from: startOfWeek, to: endOfWeek)
+        let daysLeft = daysLeftInWeek(from: Date(), endOfWeek: endOfWeek)
+        let target = weeklyTargetSessions
+        let progress = min(1.0, target > 0 ? Double(sessions) / Double(target) : 0)
+        let suggestion = weeklySuggestionText(sessionsThisWeek: sessions, target: target, daysLeft: daysLeft)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Weekly Habit Recap")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+
+            HStack(spacing: 12) {
+                Image(systemName: "flame.fill")
+                    .foregroundColor(.orange)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current Streak: \(userStatsManager.currentWorkSessionStreak) days")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Text("Best: \(userStatsManager.longestWorkSessionStreak) days")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 12) {
+                Image(systemName: "target")
+                    .foregroundColor(.blue)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("This week: \(sessions)/\(target) sessions")
+                            .font(.subheadline)
+                        Spacer()
+                        Text("\(Int(progress * 100))%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    ProgressView(value: progress)
+                        .tint(.blue)
+                }
+            }
+
+            Text(suggestion)
+                .font(.footnote)
+                .foregroundColor(.secondary)
         }
         .padding(20)
         .background(Color(.systemGray6))
@@ -492,6 +555,41 @@ struct TodayView: View {
         } else {
             return "\(remainingMinutes)m"
         }
+    }
+    
+    private func weekDateRange(for date: Date) -> (start: Date, end: Date) {
+        let cal = Calendar.current
+        let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)) ?? cal.startOfDay(for: date)
+        let end = cal.date(byAdding: .day, value: 7, to: start) ?? date
+        return (start, end)
+    }
+    
+    private func countWorkSessions(from start: Date, to end: Date) -> Int {
+        let request: NSFetchRequest<Fathom.WorkplaceCheckIn> = Fathom.WorkplaceCheckIn.fetchRequest()
+        request.predicate = NSPredicate(format: "checkInTime >= %@ AND checkInTime < %@", start as NSDate, end as NSDate)
+        let results = (try? viewContext.fetch(request)) ?? []
+        return results.count
+    }
+    
+    private func daysLeftInWeek(from today: Date, endOfWeek: Date) -> Int {
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: today)
+        let days = cal.dateComponents([.day], from: startOfToday, to: endOfWeek).day ?? 0
+        return max(0, days)
+    }
+    
+    private func weeklySuggestionText(sessionsThisWeek: Int, target: Int, daysLeft: Int) -> String {
+        if target <= 0 { return "Set a weekly session goal to get tailored suggestions." }
+        if sessionsThisWeek >= target {
+            return "Great job — you've hit your weekly goal! Keep your streak by planning one more short session."
+        }
+        if daysLeft == 0 {
+            let remaining = max(0, target - sessionsThisWeek)
+            return remaining > 0 ? "Week wraps today — try to squeeze in \(remaining) more session\(remaining == 1 ? "" : "s") if you can." : "Week wraps today — nice work!"
+        }
+        let remaining = max(0, target - sessionsThisWeek)
+        let perDay = max(1, Int(ceil(Double(remaining) / Double(daysLeft))))
+        return "You're \(remaining) away from your weekly goal of \(target). With \(daysLeft) day\(daysLeft == 1 ? "" : "s") left, aim for \(perDay) session\(perDay == 1 ? "" : "s") per day."
     }
     
     private func calculateTodayStats() -> DayStats {
